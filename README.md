@@ -119,20 +119,6 @@ Das Ziel ist kein Anti-Framework-Statement. Das Ziel ist Grundlagenverständnis.
 
 ---
 
-## Hinweise zur Veröffentlichung
-
-Für eine öffentliche Veröffentlichung auf GitHub empfiehlt sich zusätzlich:
-
-- `config.example.php` statt produktiv wirkender Beispielkonfigurationen
-- keine echten oder dauerhaft wirkenden App-Keys im Repository
-- klare Installationshinweise pro Version
-- optional Demo-Daten für schnelle Tests
-- Changelog oder Release-Notizen
-- Lizenzdatei, falls das Projekt öffentlich weiterverwendet werden darf
-- Hinweis, dass spätere Versionen mit Installer und Datenbank arbeiten
-
----
-
 ## Status
 
 Die erste Tutorialhälfte bis Teil 10 bildet eine solide Basis für eine Haushaltsanwendung mit Benutzerkonten, Rollen, persönlichen Listen, Haushalten und Gemeinschaftslisten. Die geplanten Teile 11 bis 20 bauen darauf weitere Module wie Todos, Nachrichten, Chat, Kalender, Dashboard, Export und Finalisierung auf.
