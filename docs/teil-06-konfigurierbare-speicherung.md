@@ -1,4 +1,8 @@
-# Teil 06 – Konfigurierbare Speicherung mit Installer
+# Teil 06 – Konfigurierbare Speicherung
+
+Teil 06 führt eine austauschbare Speicherschicht ein. Die Anwendung kann denselben fachlichen Code mit JSON-Datei, SQLite oder MySQL/MariaDB betreiben.
+
+> **Rolle in der Reihe:** Dieser Teil professionalisiert die Architektur. Speicherung wird nicht mehr direkt an eine konkrete Technik gebunden, sondern über eine zentrale Storage-Schicht gekapselt.
 
 <!-- tutorial-nav:start -->
 
@@ -11,232 +15,188 @@
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
-| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen/löschen |
+| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen und löschen |
 | 02 | [02 – Einkaufsliste mit LocalStorage](teil-02-localstorage.md) | [Version 02](../versions/02-localstorage/) | Speicherung im Browser |
 | 03 | [03 – Mengen, Kategorien und Status](teil-03-kategorien-mengen-status.md) | [Version 03](../versions/03-categories-status/) | strukturierte Artikeldaten |
 | 04 | [04 – Mehrere Einzellisten](teil-04-mehrere-einzellisten.md) | [Version 04](../versions/04-multiple-lists/) | mehrere getrennte Listen |
 | 05 | [05 – PHP-JSON-Backend](teil-05-php-json-backend.md) | [Version 05](../versions/05-json-backend/) | serverseitige JSON-Speicherung |
 | 06 | **[06 – Konfigurierbare Speicherung](teil-06-konfigurierbare-speicherung.md)** | **[Version 06](../versions/06-configurable-storage/)** | JSON, SQLite oder MySQL/MariaDB |
-| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions, Rollen |
+| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions und Rollen |
 | 08 | [08 – Persönliche und gemeinsame Listen](teil-08-persoenliche-und-gemeinsame-listen.md) | [Version 08](../versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | [09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [Version 09](../versions/09-families-households/) | Haushaltszuordnung für Nutzer |
 | 10 | [10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [Version 10](../versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
 
 <!-- tutorial-nav:end -->
-In Teil 05 wurde die Anwendung erstmals serverseitig gespeichert. Die Daten lagen in einer JSON-Datei.
-
-In Teil 06 wird die Speicherung austauschbar. Die API bleibt für das Frontend gleich, aber im Backend kann gewählt werden, wo die Daten gespeichert werden:
-
-- JSON-Datei
-- SQLite über PDO
-- MySQL/MariaDB über PDO
-
-Dafür bekommt die Anwendung einen Installer.
 
 ---
 
-## Ziel dieses Tutorials
+## Ziel dieses Kapitels
 
 Am Ende dieses Teils kann die Anwendung:
 
-- beim ersten Start einen Installer anzeigen
-- JSON, SQLite oder MySQL/MariaDB als Speicher auswählen
-- eine `config.php` erzeugen
-- JSON-Dateien im Ordner `data/` anlegen
-- SQLite-Datenbanken im Ordner `data/` anlegen
-- MySQL/MariaDB-Datenbank und Tabellen automatisch erzeugen
-- dieselbe API unabhängig vom Speicher verwenden
-- weiterhin CSRF, Validierung und sichere Ausgabe nutzen
+- Speicherung konfigurierbar machen
+- JSON, SQLite und MySQL/MariaDB als Speicheroptionen anbieten
+- einen Installer für die Ersteinrichtung bereitstellen
+- Datenbanktabellen automatisch anlegen
+- API-Code von konkreten Speichermechanismen entkoppeln
+- bestehende Sicherheitsgrundlagen beibehalten
 
 ---
 
-## Warum eine austauschbare Speicher-Schicht?
+## Warum, weshalb, wieso dieser Schritt?
 
-Bis Teil 05 war die API direkt an JSON gebunden. Das ist für den Einstieg gut, aber später unpraktisch.
+Teil 05 war ein guter Einstieg, aber eine direkt verwendete JSON-Datei bindet die Anwendung zu stark an eine konkrete Speichertechnik.
+Professioneller Code trennt fachliche Aktionen von Infrastruktur. Ob Daten aus JSON, SQLite oder MySQL kommen, sollte nicht überall im Projekt entschieden werden.
+Eine austauschbare Speicherschicht zeigt ein wichtiges Architekturprinzip: Änderungen an der Infrastruktur sollen möglichst wenig Auswirkungen auf Oberfläche und Fachlogik haben.
 
-Ab Teil 06 gibt es eine Speicher-Schicht.
-
-Das Frontend spricht weiter mit `api.php`.
-
-Die API spricht mit einem Speicher-Adapter.
-
-Der Adapter entscheidet, ob Daten aus JSON, SQLite oder MySQL/MariaDB kommen.
-
-Dadurch muss das Frontend nicht umgebaut werden, wenn die Speicherung wechselt.
+Der didaktische Gedanke der Reihe bleibt dabei gleich: Jede neue Funktion löst ein konkretes Problem des vorherigen Standes. Dadurch entsteht keine Sammlung isolierter Codebeispiele, sondern eine fortlaufende Anwendung mit wachsender fachlicher und technischer Tiefe.
 
 ---
 
-## Projektstruktur
+## Ausgangspunkt aus dem vorherigen Teil
+
+- Direkte JSON-Abhängigkeit wurde entfernt.
+- Die Anwendung besitzt nun eine konfigurierbare Persistenzschicht.
+- Ein Installer unterstützt die Ersteinrichtung.
+- SQLite und MySQL/MariaDB bringen das Projekt näher an reale Webanwendungen.
+
+Dieser Ausgangspunkt bestimmt, warum die Erweiterung in diesem Kapitel sinnvoll ist und welche Grenzen weiterhin bewusst stehen bleiben.
+
+---
+
+## Fachliche Grundlagen
+
+- **Storage-Schicht**: Eine zentrale Datei kapselt Lesen, Schreiben und Initialisieren der Daten.
+- **Konfiguration**: `config.php` bestimmt, welche Speicherart verwendet wird.
+- **Installer**: `installer.php` bereitet Dateien oder Datenbanktabellen für den ersten Start vor.
+- **PDO**: SQLite und MySQL/MariaDB werden über eine einheitliche Datenbankschnittstelle angesprochen.
+- **Transaktion**: Mehrere Datenbankoperationen können als zusammengehöriger Vorgang behandelt werden.
+
+---
+
+## Technische Umsetzung im Überblick
+
+- `includes/bootstrap.php` lädt Konfiguration und Grundfunktionen.
+- `includes/storage.php` enthält die Speicherlogik für JSON, SQLite und MySQL/MariaDB.
+- `installer.php` richtet die gewählte Speicherart ein.
+- `config.php` enthält Speicherart, Pfade, Datenbankzugang und App-Key.
+- `api.php` arbeitet weiter mit fachlichen Aktionen, muss aber nicht mehr selbst wissen, ob JSON oder SQL verwendet wird.
+
+### Projektstand nach Teil 06
 
 ```txt
 versions/
 └── 06-configurable-storage/
+    ├── api.php
+    ├── config.php
     ├── index.php
     ├── installer.php
-    ├── api.php
-    ├── config.php              # wird vom Installer erzeugt
-    ├── includes/
-    │   ├── bootstrap.php
-    │   ├── security.php
-    │   └── storage.php
-    └── data/
-        ├── .htaccess
-        ├── lists.json           # bei JSON-Auswahl
-        └── app.sqlite           # bei SQLite-Auswahl
+    ├── data/
+    │   └── .htaccess
+    └── includes/
+        ├── bootstrap.php
+        ├── security.php
+        └── storage.php
 ```
 
 ---
 
-## Speicherarten
+## Architekturentscheidung
 
-### JSON
+Die Speicherschicht ist der zentrale Architekturfortschritt dieses Kapitels.
+Statt direkte Dateizugriffe in der API zu verteilen, gibt es eine Stelle, an der Persistenz behandelt wird.
+Das verbessert Wartbarkeit und Erweiterbarkeit. Später können Benutzer, Rollen und Haushalte auf derselben Grundlage ergänzt werden.
 
-JSON speichert die Daten in:
-
-```txt
-data/lists.json
-```
-
-Vorteile:
-
-- sehr einfach
-- gut lesbar
-- ideal zum Lernen
-- kein Datenbankserver nötig
-
-Nachteile:
-
-- nicht ideal für viele gleichzeitige Benutzer
-- keine echten SQL-Abfragen
-- nicht optimal für spätere Rechteverwaltung
+**Wichtig:** Die Reihe bleibt bewusst ohne Framework-Overkill. Ziel ist nicht, ein modernes Framework zu umgehen, sondern zuerst die Grundmechanik einer Webanwendung zu verstehen: Datenmodell, Oberfläche, Anfrage, Antwort, Speicherung, Validierung und Rechteprüfung.
 
 ---
 
-### SQLite über PDO
+## Pro und Kontra
 
-SQLite speichert die Daten in:
+### Vorteile
 
-```txt
-data/app.sqlite
-```
+- deutlich professionellere Projektstruktur
+- Speichertechnik kann gewechselt werden
+- SQLite eignet sich für lokale Demos und kleine Installationen
+- MySQL/MariaDB bereitet produktionsnähere Umgebungen vor
+- Installer senkt die Einstiegshürde
 
-Vorteile:
+### Nachteile
 
-- echte Datenbank
-- keine Serverkonfiguration nötig
-- gut für lokale Demos
-- perfekt für GitHub-Projekte
-- PDO und Prepared Statements können direkt genutzt werden
+- mehr Dateien und höhere Einstiegskomplexität
+- Konfiguration kann falsch gesetzt werden
+- mehr Fehlerquellen bei Datenbankzugängen
+- Storage-Abstraktion muss sauber gepflegt werden
+- für absolute Anfänger schwerer als Teil 05
 
-Nachteile:
-
-- für stark parallele Webanwendungen begrenzt
-- nicht immer auf jedem Webhosting ideal
-
----
-
-### MySQL/MariaDB über PDO
-
-MySQL/MariaDB nutzt einen Datenbankserver.
-
-Vorteile:
-
-- geeignet für Webhosting
-- besser für mehrere Benutzer
-- saubere Grundlage für Login, Familien, Nachrichten und Kalender
-- vorbereitet für produktivere Strukturen
-
-Nachteile:
-
-- Zugangsdaten nötig
-- Datenbankserver nötig
-- der Datenbanknutzer benötigt Rechte zum Erstellen der Datenbank oder Tabellen
+Diese Nachteile sind in diesem Kapitel nicht automatisch Fehler. Viele davon sind bewusste Zwischenstände, die in späteren Teilen gezielt aufgelöst werden.
 
 ---
 
-## Sicherheitsgrundlagen bleiben erhalten
+## Sicherheits- und Qualitätsaspekte
 
-Teil 06 übernimmt die Sicherheitsbasis aus Teil 05:
-
-- Session-Cookie mit `HttpOnly`
-- CSRF-Token für POST-Aktionen
-- serverseitige Validierung
-- feste Kategorienliste
-- Längenbegrenzung für Eingaben
-- sichere Ausgabe mit `htmlspecialchars()`
-- sichere DOM-Ausgabe mit `textContent`
-- kein Rendering von Benutzerdaten über `innerHTML`
-- Datenordner per `.htaccess` geschützt
-- PDO mit Exceptions
-- PDO mit deaktivierten emulierten Prepared Statements
+- CSRF-Schutz und serverseitige Validierung bleiben erhalten.
+- Für SQL-Speicherung werden PDO Prepared Statements genutzt, um SQL-Injection zu vermeiden.
+- Konfigurationsdateien dürfen in echten Projekten keine öffentlichen Geheimnisse enthalten. Für eine Veröffentlichung sollte zusätzlich ein `config.example.php`-Muster genutzt werden.
+- Der Installer sollte in Produktivumgebungen nach der Einrichtung entfernt oder geschützt werden.
 
 ---
 
-## Datenbankschema
+## Typische Fehlerquellen
 
-Bei SQLite und MySQL/MariaDB werden drei Tabellen angelegt:
-
-```txt
-app_settings
-lists
-items
-```
-
-### app_settings
-
-Speichert einfache Anwendungseinstellungen, aktuell die aktive Liste.
-
-### lists
-
-Speichert die vorhandenen Listen.
-
-### items
-
-Speichert die Artikel einer Liste.
+- Speicherart in `config.php` ändern, ohne den Installer auszuführen
+- MySQL-Zugangsdaten falsch setzen
+- Installer öffentlich online lassen
+- API-Code wieder direkt an SQL oder JSON koppeln
+- Tabellenstruktur und JSON-Struktur auseinanderlaufen lassen
 
 ---
 
-## Warum noch kein Benutzerlogin?
-
-Teil 06 ist bewusst nur der Speicher-Umbau.
-
-Login kommt im nächsten Teil.
-
-Der Grund: Login benötigt eine stabile Datenbasis. Deshalb wird zuerst geklärt, ob die Anwendung mit JSON, SQLite oder MySQL/MariaDB arbeitet.
-
-Danach können Benutzer sauber ergänzt werden.
-
----
-
-## Testfälle
+## Testcheckliste
 
 | Test | Erwartetes Ergebnis |
-|---|---|
-| Anwendung ohne config.php öffnen | Installer wird angezeigt |
-| JSON auswählen | `data/lists.json` wird erzeugt |
-| SQLite auswählen | `data/app.sqlite` wird erzeugt |
-| MySQL auswählen | Datenbank und Tabellen werden erzeugt |
-| Neue Liste erstellen | Liste wird im gewählten Speicher gespeichert |
-| Artikel hinzufügen | Artikel bleibt nach Reload erhalten |
-| Speicher im Installer neu wählen | Konfiguration wird bewusst überschrieben |
-| POST ohne CSRF senden | Anfrage wird abgelehnt |
-| Ungültige Kategorie senden | Anfrage wird abgelehnt |
-| zu lange Eingabe senden | Anfrage wird abgelehnt |
+| --- | --- |
+| Installer mit JSON ausführen | JSON-Datenbestand wird angelegt |
+| Installer mit SQLite ausführen | SQLite-Datei und Tabellen werden erstellt |
+| Installer mit MySQL ausführen | Tabellen werden in der Datenbank erstellt |
+| Liste anlegen | Daten werden in der gewählten Speicherart gespeichert |
+| Speicherart wechseln und neu installieren | Anwendung startet mit passender Datenbasis |
+| API ohne CSRF testen | schreibende Aktionen werden abgelehnt |
 
 ---
 
-## Nächster Schritt
+## Was wurde gegenüber dem vorherigen Stand verbessert?
 
-In Teil 07 bauen wir Login und Benutzerkonten.
+- Direkte JSON-Abhängigkeit wurde entfernt.
+- Die Anwendung besitzt nun eine konfigurierbare Persistenzschicht.
+- Ein Installer unterstützt die Ersteinrichtung.
+- SQLite und MySQL/MariaDB bringen das Projekt näher an reale Webanwendungen.
 
-Dann kommen hinzu:
+---
 
-- Benutzertabelle
-- Registrierung
-- Login
-- Logout
-- Passwort-Hashing
-- Sessions
-- persönliche Listen pro Benutzer
+## Grenzen dieser Version
 
-Für SQLite und MySQL/MariaDB können wir direkt mit PDO und Prepared Statements weiterarbeiten.
+- noch kein Benutzerlogin
+- keine Rollen oder Rechte
+- Konfigurationsmanagement ist noch einfach gehalten
+- keine automatisierten Migrationen zwischen Versionen
+
+---
+
+## Ausblick auf den nächsten Teil
+
+Teil 07 ergänzt Registrierung, Login, Sessions und Rollen. Dadurch entstehen erstmals unterschiedliche Berechtigungen für Admins und Nutzer.
+
+---
+
+## Einordnung für die Praxis
+
+Dieser Teil ist ein Lernschritt, kein fertiges Produkt. Genau darin liegt der Wert der Reihe: Jeder Stand ist klein genug, um verstanden zu werden, aber konkret genug, um später erweitert zu werden.
+
+In einem professionellen Umfeld würde man zusätzlich auf saubere Release-Stände, automatisierte Tests, Konfigurationsbeispiele, Datenmigrationen, Deployment-Dokumentation und eine klare Trennung zwischen Demo- und Produktivbetrieb achten. Die Tutorialreihe führt diese Themen schrittweise ein, ohne den Einstieg unnötig zu überladen.
+
+---
+
+## Navigation
+
+[← Teil 05 – PHP-JSON-Backend](teil-05-php-json-backend.md) | [README / Übersicht](../README.md) | [Teil 07 – Login, Benutzer und Rollen →](teil-07-login-benutzer-rollen.md)

@@ -1,5 +1,9 @@
 # Teil 02 – Einkaufsliste mit LocalStorage
 
+Teil 02 erweitert die Einkaufsliste um dauerhafte Browser-Speicherung. Die Anwendung bleibt weiterhin rein frontendbasiert, verliert ihre Daten aber nicht mehr beim Neuladen.
+
+> **Rolle in der Reihe:** Dieser Teil zeigt den ersten echten Persistenzschritt. Die Daten verlassen noch nicht den Browser, aber sie werden erstmals nicht nur im flüchtigen DOM gehalten.
+
 <!-- tutorial-nav:start -->
 
 ## Tutorial-Navigation
@@ -11,196 +15,171 @@
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
-| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen/löschen |
+| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen und löschen |
 | 02 | **[02 – Einkaufsliste mit LocalStorage](teil-02-localstorage.md)** | **[Version 02](../versions/02-localstorage/)** | Speicherung im Browser |
 | 03 | [03 – Mengen, Kategorien und Status](teil-03-kategorien-mengen-status.md) | [Version 03](../versions/03-categories-status/) | strukturierte Artikeldaten |
 | 04 | [04 – Mehrere Einzellisten](teil-04-mehrere-einzellisten.md) | [Version 04](../versions/04-multiple-lists/) | mehrere getrennte Listen |
 | 05 | [05 – PHP-JSON-Backend](teil-05-php-json-backend.md) | [Version 05](../versions/05-json-backend/) | serverseitige JSON-Speicherung |
 | 06 | [06 – Konfigurierbare Speicherung](teil-06-konfigurierbare-speicherung.md) | [Version 06](../versions/06-configurable-storage/) | JSON, SQLite oder MySQL/MariaDB |
-| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions, Rollen |
+| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions und Rollen |
 | 08 | [08 – Persönliche und gemeinsame Listen](teil-08-persoenliche-und-gemeinsame-listen.md) | [Version 08](../versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | [09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [Version 09](../versions/09-families-households/) | Haushaltszuordnung für Nutzer |
 | 10 | [10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [Version 10](../versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
 
 <!-- tutorial-nav:end -->
-In Teil 01 haben wir eine einfache Einkaufsliste gebaut. Die Liste funktionierte bereits im Browser, hatte aber noch einen entscheidenden Nachteil: Nach dem Neuladen der Seite waren alle Einträge verschwunden.
-
-In diesem zweiten Teil erweitern wir die Anwendung um `localStorage`.
-
-Damit werden die Einträge direkt im Browser gespeichert und beim nächsten Öffnen der Seite wieder geladen.
 
 ---
 
-## Ziel dieses Tutorials
+## Ziel dieses Kapitels
 
 Am Ende dieses Teils kann die Anwendung:
 
-* Artikel hinzufügen
-* Artikel löschen
-* Artikel dauerhaft im Browser speichern
-* gespeicherte Artikel beim Laden der Seite wieder anzeigen
-* die komplette Liste zurücksetzen
-* ungültige oder leere Eingaben verhindern
-* beschädigte gespeicherte Daten abfangen
+- Artikel dauerhaft im Browser speichern
+- Daten beim Seitenstart automatisch laden
+- nach jeder Änderung den aktuellen Stand sichern
+- eine einfache JavaScript-Datenstruktur einführen
+- DOM-Darstellung aus gespeicherten Daten neu rendern
 
 ---
 
-## Lernziele
+## Warum, weshalb, wieso dieser Schritt?
 
-In diesem Teil lernst du:
+Nach Teil 01 ist der größte fachliche Mangel offensichtlich: Nach dem Neuladen ist alles weg. `localStorage` löst genau dieses Problem mit sehr wenig zusätzlicher Technik.
+Wir verwenden noch kein Backend, weil der Lernschritt sonst zu groß wäre. Persistenz soll zuerst als Konzept verstanden werden: Daten speichern, Daten laden, Daten wieder anzeigen.
+Dieser Zwischenschritt ist didaktisch wertvoll, weil er später den Unterschied zwischen lokaler Speicherung und serverseitiger Speicherung deutlich macht.
 
-* was `localStorage` ist
-* wie Daten im Browser gespeichert werden
-* warum JavaScript-Objekte vor dem Speichern in JSON umgewandelt werden müssen
-* wie gespeicherte JSON-Daten wieder geladen werden
-* wie man einfache Fehler beim Laden abfängt
-* wie man eine Liste vollständig zurücksetzt
+Der didaktische Gedanke der Reihe bleibt dabei gleich: Jede neue Funktion löst ein konkretes Problem des vorherigen Standes. Dadurch entsteht keine Sammlung isolierter Codebeispiele, sondern eine fortlaufende Anwendung mit wachsender fachlicher und technischer Tiefe.
 
 ---
 
-## Was ist localStorage?
+## Ausgangspunkt aus dem vorherigen Teil
 
-`localStorage` ist ein Speicherbereich im Browser.
+- Daten sind nicht mehr nur temporär im DOM vorhanden.
+- Die Anwendung kann aus gespeicherten Daten neu aufgebaut werden.
+- Der Code nähert sich einem echten Datenfluss: laden, ändern, speichern, rendern.
 
-Dort können einfache Daten dauerhaft gespeichert werden. Dauerhaft bedeutet in diesem Fall: Die Daten bleiben auch erhalten, wenn die Seite neu geladen oder der Browser geschlossen wird.
-
-Die Daten bleiben gespeichert, bis sie aktiv gelöscht werden.
-
-Typische Einsatzfälle:
-
-* kleine Einstellungen
-* Darkmode-Auswahl
-* einfache Listen
-* lokale Entwürfe
-* Lernprojekte ohne Backend
-
-Wichtig: `localStorage` ist keine Datenbank und kein sicherer Speicherort für sensible Daten.
-
-Passwörter, private Nachrichten, Gesundheitsdaten oder geheime Informationen gehören dort nicht hinein.
+Dieser Ausgangspunkt bestimmt, warum die Erweiterung in diesem Kapitel sinnvoll ist und welche Grenzen weiterhin bewusst stehen bleiben.
 
 ---
 
-## Projektstand nach Teil 02
+## Fachliche Grundlagen
 
-```txt id="sysfv6"
+- **localStorage** speichert Schlüssel-Wert-Paare dauerhaft im Browser des jeweiligen Geräts.
+- **JSON.stringify()** wandelt JavaScript-Daten in eine speicherbare Zeichenkette um.
+- **JSON.parse()** wandelt gespeicherte Zeichenketten zurück in JavaScript-Daten.
+- **Rendern aus Daten** bedeutet: Die Liste wird nicht mehr nur spontan ergänzt, sondern aus dem aktuellen Datenbestand neu aufgebaut.
+
+---
+
+## Technische Umsetzung im Überblick
+
+- Die Anwendung bleibt in einer einzelnen `index.html`.
+- Die Artikeldaten werden in einem Array gehalten und unter einem festen Schlüssel im Browser gespeichert.
+- Beim Laden der Seite wird versucht, vorhandene Daten aus `localStorage` zu lesen.
+- Nach dem Hinzufügen oder Löschen eines Artikels wird der vollständige Datenstand erneut gespeichert.
+
+### Projektstand nach Teil 02
+
+```txt
 versions/
-├── 01-simple-shopping-list/
-│   └── index.html
 └── 02-localstorage/
     └── index.html
 ```
 
 ---
 
-## Unterschied zu Teil 01
+## Architekturentscheidung
 
-In Teil 01 lag die Einkaufsliste nur in einem JavaScript-Array:
+Die wichtigste Architekturänderung ist die Trennung zwischen Daten und Oberfläche. Der DOM ist nicht mehr die einzige Wahrheit.
+Die Anwendung bekommt ein einfaches Client-State-Modell: Daten liegen im Array, die Oberfläche wird daraus erzeugt.
+Diese Denkweise ist später entscheidend, wenn dieselben Daten nicht mehr aus dem Browser, sondern aus einer API kommen.
 
-```js id="l30y08"
-let items = [];
-```
-
-Sobald die Seite neu geladen wurde, war dieses Array wieder leer.
-
-In Teil 02 speichern wir das Array zusätzlich im Browser:
-
-```js id="gojs6h"
-localStorage.setItem("shoppingItems", JSON.stringify(items));
-```
-
-Beim Start der Anwendung laden wir die Daten wieder:
-
-```js id="ahrgpn"
-const savedItems = localStorage.getItem("shoppingItems");
-items = JSON.parse(savedItems);
-```
+**Wichtig:** Die Reihe bleibt bewusst ohne Framework-Overkill. Ziel ist nicht, ein modernes Framework zu umgehen, sondern zuerst die Grundmechanik einer Webanwendung zu verstehen: Datenmodell, Oberfläche, Anfrage, Antwort, Speicherung, Validierung und Rechteprüfung.
 
 ---
 
-## Neue Funktionen in Teil 02
+## Pro und Kontra
 
-### 1. Automatisches Speichern
+### Vorteile
 
-Nach jeder Änderung wird die Liste gespeichert:
+- weiterhin ohne Server nutzbar
+- sehr leicht testbar
+- Daten bleiben nach dem Neuladen erhalten
+- guter Einstieg in JSON-Serialisierung
+- saubere Vorbereitung auf spätere API-Daten
 
-* nach dem Hinzufügen eines Artikels
-* nach dem Löschen eines Artikels
-* nach dem Zurücksetzen der gesamten Liste
+### Nachteile
 
----
+- Daten bleiben nur auf diesem Gerät und in diesem Browser
+- kein Mehrbenutzerbetrieb möglich
+- keine Zugriffskontrolle
+- Speicher kann vom Benutzer gelöscht werden
+- für sensible Daten ungeeignet
 
-### 2. Automatisches Laden
-
-Beim Öffnen der Seite prüft die Anwendung, ob bereits gespeicherte Artikel vorhanden sind.
-
-Wenn ja, werden sie wieder angezeigt.
-
----
-
-### 3. Liste vollständig zurücksetzen
-
-Ein neuer Button löscht alle Einträge aus der Liste und entfernt die gespeicherten Daten aus dem Browser.
+Diese Nachteile sind in diesem Kapitel nicht automatisch Fehler. Viele davon sind bewusste Zwischenstände, die in späteren Teilen gezielt aufgelöst werden.
 
 ---
 
-### 4. Fehlerbehandlung
+## Sicherheits- und Qualitätsaspekte
 
-Wenn im Browser beschädigte Daten gespeichert sind, soll die Anwendung nicht abstürzen.
-
-Deshalb wird beim Laden ein `try...catch` verwendet.
-
----
-
-## Testfälle
-
-| Test                       | Erwartetes Ergebnis                                        |
-| -------------------------- | ---------------------------------------------------------- |
-| Artikel hinzufügen         | Artikel erscheint in der Liste                             |
-| Seite neu laden            | Artikel bleibt sichtbar                                    |
-| Artikel löschen            | Artikel wird entfernt und bleibt auch nach Reload entfernt |
-| Mehrere Artikel hinzufügen | Alle Artikel bleiben gespeichert                           |
-| Liste zurücksetzen         | Alle Artikel werden gelöscht                               |
-| Seite nach Reset neu laden | Liste bleibt leer                                          |
-| Leere Eingabe abschicken   | Kein Artikel wird hinzugefügt                              |
+- `localStorage` ist nicht für vertrauliche Daten geeignet. Alles, was dort gespeichert wird, liegt im Browser des Nutzers.
+- Es gibt noch keine Authentifizierung und keine Rechteprüfung. Deshalb eignet sich dieser Teil nur für lokale Demo- und Lernzwecke.
+- Benutzereingaben sollten weiterhin als Text ausgegeben werden. Speicherung macht unsichere Ausgabe nicht sicherer.
 
 ---
 
-## Warum noch kein Backend?
+## Typische Fehlerquellen
 
-In diesem Teil geht es bewusst nur um Speicherung im Browser.
-
-Ein Backend mit PHP, JSON oder Datenbank folgt später. Der Vorteil dieser Reihenfolge ist, dass die Grundlogik zuerst einfach bleibt.
-
-Wir lernen also zuerst:
-
-1. Daten im Array verwalten
-2. Daten im Browser speichern
-3. später Daten an ein Backend senden
-4. danach Daten in einer Datenbank speichern
+- `JSON.parse()` ohne Fehlerbehandlung verwenden und dadurch bei beschädigten Daten die Anwendung abbrechen lassen
+- Daten speichern, aber beim Start nicht wieder laden
+- den DOM direkt ändern, ohne den Datenbestand zu aktualisieren
+- mehrere Schlüssel uneinheitlich verwenden und dadurch alte Datenbestände verlieren
 
 ---
 
-## Einschränkungen von localStorage
+## Testcheckliste
 
-`localStorage` hat klare Grenzen:
-
-* Daten gelten nur für diesen Browser
-* Daten werden nicht zwischen Geräten synchronisiert
-* Daten sind nicht geschützt
-* andere Benutzer auf demselben Gerät könnten sie sehen
-* für echte Benutzerkonten ist ein Backend notwendig
-
-Für dieses Tutorial ist `localStorage` aber ideal, weil man ohne Server sofort versteht, wie Speichern und Laden grundsätzlich funktioniert.
+| Test | Erwartetes Ergebnis |
+| --- | --- |
+| Artikel hinzufügen und Seite neu laden | Artikel ist weiterhin vorhanden |
+| Artikel löschen und Seite neu laden | Artikel bleibt gelöscht |
+| mehrere Artikel speichern | alle Einträge werden wieder geladen |
+| Browserdaten löschen | Anwendung startet mit leerer Liste |
+| leere Eingabe testen | keine leeren Daten werden gespeichert |
 
 ---
 
-## Nächster Schritt
+## Was wurde gegenüber dem vorherigen Stand verbessert?
 
-In Teil 03 erweitern wir die Einkaufsliste um:
+- Daten sind nicht mehr nur temporär im DOM vorhanden.
+- Die Anwendung kann aus gespeicherten Daten neu aufgebaut werden.
+- Der Code nähert sich einem echten Datenfluss: laden, ändern, speichern, rendern.
 
-* Mengen
-* Kategorien
-* Status offen/erledigt
-* bessere Datenstruktur mit Objekten statt einfachen Textwerten
+---
 
-Aus dieser einfachen Liste wird dann langsam eine praktischere Anwendung.
+## Grenzen dieser Version
+
+- weiterhin nur eine Liste
+- keine strukturierten Artikeldaten
+- keine Synchronisation zwischen Geräten
+- keine serverseitige Datenhaltung
+
+---
+
+## Ausblick auf den nächsten Teil
+
+Teil 03 erweitert einzelne Artikel um Menge, Kategorie und Status. Dadurch wird aus einfachem Text ein kleines Datenmodell.
+
+---
+
+## Einordnung für die Praxis
+
+Dieser Teil ist ein Lernschritt, kein fertiges Produkt. Genau darin liegt der Wert der Reihe: Jeder Stand ist klein genug, um verstanden zu werden, aber konkret genug, um später erweitert zu werden.
+
+In einem professionellen Umfeld würde man zusätzlich auf saubere Release-Stände, automatisierte Tests, Konfigurationsbeispiele, Datenmigrationen, Deployment-Dokumentation und eine klare Trennung zwischen Demo- und Produktivbetrieb achten. Die Tutorialreihe führt diese Themen schrittweise ein, ohne den Einstieg unnötig zu überladen.
+
+---
+
+## Navigation
+
+[← Teil 01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [README / Übersicht](../README.md) | [Teil 03 – Mengen, Kategorien und Status →](teil-03-kategorien-mengen-status.md)

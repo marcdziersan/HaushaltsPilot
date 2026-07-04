@@ -1,5 +1,9 @@
 # Teil 03 – Mengen, Kategorien und Status
 
+Teil 03 macht aus einfachen Texteingaben strukturierte Artikelobjekte. Jeder Artikel kann eine Menge, eine Kategorie und einen Erledigt-Status besitzen.
+
+> **Rolle in der Reihe:** Dieser Teil ist der Übergang von einer reinen Textliste zu einem echten Datenmodell. Damit wird die spätere Erweiterung um Listen, Benutzer und Datenbank deutlich sauberer.
+
 <!-- tutorial-nav:start -->
 
 ## Tutorial-Navigation
@@ -11,246 +15,171 @@
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
-| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen/löschen |
+| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen und löschen |
 | 02 | [02 – Einkaufsliste mit LocalStorage](teil-02-localstorage.md) | [Version 02](../versions/02-localstorage/) | Speicherung im Browser |
 | 03 | **[03 – Mengen, Kategorien und Status](teil-03-kategorien-mengen-status.md)** | **[Version 03](../versions/03-categories-status/)** | strukturierte Artikeldaten |
 | 04 | [04 – Mehrere Einzellisten](teil-04-mehrere-einzellisten.md) | [Version 04](../versions/04-multiple-lists/) | mehrere getrennte Listen |
 | 05 | [05 – PHP-JSON-Backend](teil-05-php-json-backend.md) | [Version 05](../versions/05-json-backend/) | serverseitige JSON-Speicherung |
 | 06 | [06 – Konfigurierbare Speicherung](teil-06-konfigurierbare-speicherung.md) | [Version 06](../versions/06-configurable-storage/) | JSON, SQLite oder MySQL/MariaDB |
-| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions, Rollen |
+| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions und Rollen |
 | 08 | [08 – Persönliche und gemeinsame Listen](teil-08-persoenliche-und-gemeinsame-listen.md) | [Version 08](../versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | [09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [Version 09](../versions/09-families-households/) | Haushaltszuordnung für Nutzer |
 | 10 | [10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [Version 10](../versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
 
 <!-- tutorial-nav:end -->
-In Teil 01 haben wir eine einfache Einkaufsliste gebaut.
-In Teil 02 wurde diese Liste mit `localStorage` im Browser gespeichert.
-
-In Teil 03 erweitern wir die Datenstruktur.
-
-Bisher bestand ein Eintrag nur aus einfachem Text:
-
-```js
-"Milch"
-```
-
-Jetzt wird jeder Eintrag zu einem Objekt:
-
-```js
-{
-    id: "item-123",
-    name: "Milch",
-    amount: "2 Liter",
-    category: "Lebensmittel",
-    done: false
-}
-```
-
-Dadurch kann die Einkaufsliste deutlich mehr Informationen speichern und anzeigen.
 
 ---
 
-## Ziel dieses Tutorials
+## Ziel dieses Kapitels
 
 Am Ende dieses Teils kann die Anwendung:
 
-* Artikel mit Namen hinzufügen
-* Mengenangaben speichern
-* Kategorien speichern
-* Artikel als erledigt markieren
-* erledigte Artikel wieder auf offen setzen
-* Artikel löschen
-* Artikel im Browser speichern
-* gespeicherte Artikel beim Laden wiederherstellen
-* offene und erledigte Artikel zählen
-* die komplette Liste zurücksetzen
+- Artikel nicht mehr nur als Text speichern
+- Mengenangaben erfassen
+- Kategorien zuordnen
+- Artikel als offen oder erledigt markieren
+- jeden Artikel über eine eigene ID eindeutig identifizieren
+- Filter- oder Gruppierungslogik vorbereiten
 
 ---
 
-## Lernziele
+## Warum, weshalb, wieso dieser Schritt?
 
-In diesem Teil lernst du:
+Eine Einkaufsliste besteht in der Praxis selten nur aus Artikelnamen. Für echte Nutzung braucht man Mengen, Sortierung, Kategorien und Statusinformationen.
+Der Schritt ist wichtig, weil spätere Funktionen nicht zuverlässig funktionieren, wenn Daten nur als einfache Zeichenketten existieren.
+Die ID ist dabei zentral: Sobald ein Artikel bearbeitet, gelöscht oder synchronisiert wird, darf man ihn nicht nur über den Namen suchen. Namen können doppelt vorkommen.
 
-* warum Objekte besser sind als einfache Textwerte
-* wie man strukturierte Daten in JavaScript speichert
-* wie man Artikel mit mehreren Eigenschaften verwaltet
-* wie man Checkboxen oder Buttons für Statusänderungen nutzt
-* wie man erledigte Einträge optisch unterscheidet
-* wie man Daten als JSON im `localStorage` speichert
-* wie man einfache Statistiken berechnet
+Der didaktische Gedanke der Reihe bleibt dabei gleich: Jede neue Funktion löst ein konkretes Problem des vorherigen Standes. Dadurch entsteht keine Sammlung isolierter Codebeispiele, sondern eine fortlaufende Anwendung mit wachsender fachlicher und technischer Tiefe.
 
 ---
 
-## Projektstand nach Teil 03
+## Ausgangspunkt aus dem vorherigen Teil
+
+- Aus einfachen Strings wurden strukturierte Artikelobjekte.
+- Jeder Artikel besitzt eine eindeutige technische ID.
+- Der Status eines Artikels kann verändert und gespeichert werden.
+
+Dieser Ausgangspunkt bestimmt, warum die Erweiterung in diesem Kapitel sinnvoll ist und welche Grenzen weiterhin bewusst stehen bleiben.
+
+---
+
+## Fachliche Grundlagen
+
+- **Objektstruktur**: Jeder Artikel wird als Objekt mit mehreren Eigenschaften gespeichert.
+- **ID**: Eine eindeutige Kennung trennt die technische Identität vom sichtbaren Namen.
+- **Status**: Ein boolescher Wert wie `done` bildet offen/erledigt ab.
+- **Kategorie**: Eine fachliche Gruppierung, die später für Filter, Sortierung oder Statistik genutzt werden kann.
+
+---
+
+## Technische Umsetzung im Überblick
+
+- Beim Hinzufügen wird nicht nur ein Text gespeichert, sondern ein vollständiges Artikelobjekt erzeugt.
+- Die Oberfläche zeigt neben dem Namen auch Menge, Kategorie und Status an.
+- Der Status kann per Button umgeschaltet werden.
+- Alle Änderungen werden weiterhin im `localStorage` gespeichert.
+
+### Projektstand nach Teil 03
 
 ```txt
 versions/
-├── 01-simple-shopping-list/
-│   └── index.html
-├── 02-localstorage/
-│   └── index.html
 └── 03-categories-status/
     └── index.html
 ```
 
 ---
 
-## Unterschied zu Teil 02
+## Architekturentscheidung
 
-In Teil 02 bestand die Liste aus einfachen Textwerten:
+Das Datenmodell wird bewusst im Frontend eingeführt, bevor ein Backend hinzukommt. So bleibt sichtbar, welche Felder später serverseitig gespeichert werden müssen.
+IDs werden früh eingeführt, weil sie fast jede spätere CRUD-Operation vereinfachen.
+Die Oberfläche folgt nun stärker dem Datenmodell: Ein Artikel ist nicht mehr eine Zeile Text, sondern ein fachliches Objekt.
 
-```js
-let items = ["Milch", "Brot", "Käse"];
-```
-
-Das ist für den Anfang gut, wird aber schnell zu wenig.
-
-Wir können damit nicht sauber speichern:
-
-* wie viel gekauft werden soll
-* zu welcher Kategorie der Artikel gehört
-* ob der Artikel bereits erledigt ist
-
-Darum wird die Liste in Teil 03 auf Objekte umgestellt:
-
-```js
-let items = [
-    {
-        id: "item-1710000000000",
-        name: "Milch",
-        amount: "2 Liter",
-        category: "Lebensmittel",
-        done: false
-    }
-];
-```
+**Wichtig:** Die Reihe bleibt bewusst ohne Framework-Overkill. Ziel ist nicht, ein modernes Framework zu umgehen, sondern zuerst die Grundmechanik einer Webanwendung zu verstehen: Datenmodell, Oberfläche, Anfrage, Antwort, Speicherung, Validierung und Rechteprüfung.
 
 ---
 
-## Neue Eigenschaften pro Artikel
+## Pro und Kontra
 
-| Eigenschaft | Bedeutung                                         |
-| ----------- | ------------------------------------------------- |
-| `id`        | eindeutige Kennung für den Artikel                |
-| `name`      | Name des Artikels                                 |
-| `amount`    | Menge, z. B. `2 Liter`, `1 Packung`, `500 g`      |
-| `category`  | Kategorie, z. B. Lebensmittel, Drogerie, Haushalt |
-| `done`      | Status: erledigt oder offen                       |
+### Vorteile
 
----
+- realistischere Datenstruktur
+- gute Vorbereitung auf CRUD und API
+- Artikel können eindeutig angesprochen werden
+- Statuswechsel ohne Namensvergleich möglich
+- Grundlage für spätere Filter und Listenansichten
 
-## Warum eine ID?
+### Nachteile
 
-In den ersten beiden Teilen haben wir Artikel über ihre Position im Array gelöscht.
+- mehr JavaScript-Code als in Teil 02
+- Datenmigration kann relevant werden, wenn alte localStorage-Daten existieren
+- mehr Eingabefelder bedeuten mehr Validierungsbedarf
+- ohne Backend weiterhin nur lokal nutzbar
 
-Das funktioniert am Anfang, ist aber später unpraktisch.
-
-Wenn Artikel sortiert, gefiltert oder bearbeitet werden, ist eine feste ID besser.
-
-Beispiel:
-
-```js
-{
-    id: "item-1710000000000",
-    name: "Milch",
-    amount: "2 Liter",
-    category: "Lebensmittel",
-    done: false
-}
-```
-
-Mit dieser ID kann ein Artikel eindeutig gefunden, gelöscht oder geändert werden.
+Diese Nachteile sind in diesem Kapitel nicht automatisch Fehler. Viele davon sind bewusste Zwischenstände, die in späteren Teilen gezielt aufgelöst werden.
 
 ---
 
-## Neue Funktionen in Teil 03
+## Sicherheits- und Qualitätsaspekte
 
-### 1. Menge pro Artikel
-
-Beim Hinzufügen kann eine Menge angegeben werden.
-
-Beispiele:
-
-* `2 Liter`
-* `1 Packung`
-* `500 g`
-* `3 Stück`
-* `nach Bedarf`
+- Auch strukturierte Daten bleiben Benutzereingaben. Sie dürfen nicht als HTML ausgegeben werden.
+- Kategorien sollten aus festen Werten bestehen oder zumindest normalisiert werden, damit die Daten konsistent bleiben.
+- Da noch kein Backend vorhanden ist, gibt es keine serverseitige Vertrauensgrenze. Alle Daten sind lokal manipulierbar.
 
 ---
 
-### 2. Kategorie pro Artikel
+## Typische Fehlerquellen
 
-Jeder Artikel bekommt eine Kategorie.
-
-Beispiele:
-
-* Lebensmittel
-* Getränke
-* Haushalt
-* Drogerie
-* Sonstiges
-
-Das ist später wichtig, wenn wir filtern, sortieren oder mehrere Listen verwalten wollen.
+- Artikel über den Namen statt über die ID löschen
+- Status nur im DOM ändern, aber nicht im Datenarray speichern
+- leere Namen mit gültigen Mengen speichern
+- alte localStorage-Daten nicht berücksichtigen und dadurch Fehler beim Laden erzeugen
 
 ---
 
-### 3. Status offen/erledigt
+## Testcheckliste
 
-Ein Artikel kann als erledigt markiert werden.
-
-Dadurch wird sichtbar:
-
-* was noch gekauft werden muss
-* was bereits erledigt wurde
-
----
-
-### 4. Statistik
-
-Die Anwendung zählt jetzt:
-
-* alle Artikel
-* offene Artikel
-* erledigte Artikel
+| Test | Erwartetes Ergebnis |
+| --- | --- |
+| Artikel mit Menge hinzufügen | Menge wird angezeigt und gespeichert |
+| Artikel mit Kategorie hinzufügen | Kategorie erscheint am Artikel |
+| Status umschalten | Artikel wechselt zwischen offen und erledigt |
+| Seite neu laden | Menge, Kategorie und Status bleiben erhalten |
+| zwei gleiche Artikelnamen hinzufügen | beide bleiben einzeln löschbar |
 
 ---
 
-## Testfälle
+## Was wurde gegenüber dem vorherigen Stand verbessert?
 
-| Test                                       | Erwartetes Ergebnis                      |
-| ------------------------------------------ | ---------------------------------------- |
-| Artikel mit Menge und Kategorie hinzufügen | Artikel erscheint mit allen Angaben      |
-| Artikel ohne Menge hinzufügen              | Artikel wird trotzdem hinzugefügt        |
-| Leeren Artikelnamen absenden               | Artikel wird nicht hinzugefügt           |
-| Artikel als erledigt markieren             | Artikel wird durchgestrichen dargestellt |
-| Erledigten Artikel wieder öffnen           | Artikel ist wieder normal sichtbar       |
-| Artikel löschen                            | Artikel verschwindet dauerhaft           |
-| Seite neu laden                            | Alle Artikel bleiben erhalten            |
-| Liste zurücksetzen                         | Alle Artikel werden gelöscht             |
-| Mehrere Artikel erledigen                  | Statistik wird korrekt aktualisiert      |
+- Aus einfachen Strings wurden strukturierte Artikelobjekte.
+- Jeder Artikel besitzt eine eindeutige technische ID.
+- Der Status eines Artikels kann verändert und gespeichert werden.
 
 ---
 
-## Warum noch keine mehreren Listen?
+## Grenzen dieser Version
 
-In Teil 03 verbessern wir bewusst nur die Struktur einzelner Artikel.
-
-Mehrere Listen kommen im nächsten Teil.
-
-Das ist sinnvoll, weil mehrere Listen nur sauber funktionieren, wenn die einzelnen Einträge bereits strukturiert aufgebaut sind.
+- weiterhin nur eine einzige Einkaufsliste
+- noch keine Bearbeitung bestehender Artikelnamen
+- keine Benutzer- oder Haushaltslogik
+- keine serverseitige Prüfung
 
 ---
 
-## Nächster Schritt
+## Ausblick auf den nächsten Teil
 
-In Teil 04 erweitern wir die Anwendung um mehrere Einzellisten.
+Teil 04 führt mehrere Einzellisten ein. Dadurch kann der Nutzer getrennte Listen wie Wocheneinkauf, Drogerie oder Baumarkt verwalten.
 
-Dann kann man zum Beispiel getrennte Listen nutzen für:
+---
 
-* Einkauf
-* Baumarkt
-* Haushalt
-* Schule
-* Medikamente
-* Sonstiges
+## Einordnung für die Praxis
+
+Dieser Teil ist ein Lernschritt, kein fertiges Produkt. Genau darin liegt der Wert der Reihe: Jeder Stand ist klein genug, um verstanden zu werden, aber konkret genug, um später erweitert zu werden.
+
+In einem professionellen Umfeld würde man zusätzlich auf saubere Release-Stände, automatisierte Tests, Konfigurationsbeispiele, Datenmigrationen, Deployment-Dokumentation und eine klare Trennung zwischen Demo- und Produktivbetrieb achten. Die Tutorialreihe führt diese Themen schrittweise ein, ohne den Einstieg unnötig zu überladen.
+
+---
+
+## Navigation
+
+[← Teil 02 – Einkaufsliste mit LocalStorage](teil-02-localstorage.md) | [README / Übersicht](../README.md) | [Teil 04 – Mehrere Einzellisten →](teil-04-mehrere-einzellisten.md)

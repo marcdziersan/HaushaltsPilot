@@ -1,5 +1,9 @@
 # Teil 10 – Gemeinschaftslisten und Admin-Tabs
 
+Teil 10 verfeinert die Haushaltslisten durch Listentypen und strukturiert die inzwischen gewachsene Administration in Tabs.
+
+> **Rolle in der Reihe:** Dieser Teil schließt die erste Hälfte der Reihe sauber ab. Die Anwendung besitzt nun Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und eine besser bedienbare Administration.
+
 <!-- tutorial-nav:start -->
 
 ## Tutorial-Navigation
@@ -11,164 +15,194 @@
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
-| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen/löschen |
+| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen und löschen |
 | 02 | [02 – Einkaufsliste mit LocalStorage](teil-02-localstorage.md) | [Version 02](../versions/02-localstorage/) | Speicherung im Browser |
 | 03 | [03 – Mengen, Kategorien und Status](teil-03-kategorien-mengen-status.md) | [Version 03](../versions/03-categories-status/) | strukturierte Artikeldaten |
 | 04 | [04 – Mehrere Einzellisten](teil-04-mehrere-einzellisten.md) | [Version 04](../versions/04-multiple-lists/) | mehrere getrennte Listen |
 | 05 | [05 – PHP-JSON-Backend](teil-05-php-json-backend.md) | [Version 05](../versions/05-json-backend/) | serverseitige JSON-Speicherung |
 | 06 | [06 – Konfigurierbare Speicherung](teil-06-konfigurierbare-speicherung.md) | [Version 06](../versions/06-configurable-storage/) | JSON, SQLite oder MySQL/MariaDB |
-| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions, Rollen |
+| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions und Rollen |
 | 08 | [08 – Persönliche und gemeinsame Listen](teil-08-persoenliche-und-gemeinsame-listen.md) | [Version 08](../versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | [09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [Version 09](../versions/09-families-households/) | Haushaltszuordnung für Nutzer |
 | 10 | **[10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md)** | **[Version 10](../versions/10-shared-lists-admin-tabs/)** | vertiefte Gemeinschaftslisten und Admin-Tabs |
 
 <!-- tutorial-nav:end -->
-In Teil 09 wurden Familien und Haushalte eingeführt. Dadurch waren Gemeinschaftslisten nicht mehr global, sondern an einen Haushalt gebunden.
-
-Teil 10 vertieft diese Gemeinschaftslisten.
-
-Bisher war eine Gemeinschaftsliste einfach nur eine geteilte Liste. Jetzt bekommt jede Liste zusätzlich einen fachlichen Typ.
 
 ---
 
-## Ziel dieses Tutorials
+## Ziel dieses Kapitels
 
 Am Ende dieses Teils kann die Anwendung:
 
-- gemeinsame Einkaufslisten unterscheiden
-- gemeinsame Haushaltslisten unterscheiden
-- sonstige gemeinsame Listen führen
-- Listentypen speichern
+- Listentypen für Einkauf, Haushalt und Sonstiges einführen
+- Gemeinschaftslisten nach Typ gruppieren
 - Listentypen ändern
-- Gemeinschaftslisten nach Typ gruppiert anzeigen
-- Admin-Bereiche in Tabs anzeigen
-- Admin-Listen nach Typ filtern
+- Adminlisten nach Typ und Status filtern
+- Adminbereich in Tabs strukturieren
+- Haushalte, Benutzer und Listen übersichtlicher verwalten
+- Grundlage für Teil 11 und weitere Module stabilisieren
 
 ---
 
-## Neue Datenstruktur
+## Warum, weshalb, wieso dieser Schritt?
 
-Eine Liste besitzt jetzt zusätzlich `listType`.
+Mit Teil 09 ist die Fachlichkeit gewachsen. Es reicht nicht mehr, alle Listen gleich darzustellen.
+Listentypen machen die Anwendung verständlicher: Einkaufsliste, Haushaltsliste und sonstige Liste haben unterschiedliche fachliche Bedeutung.
+Der Adminbereich war inzwischen zu voll für eine einzige Ansicht. Tabs lösen kein Sicherheitsproblem, aber ein klares UX-Problem.
 
-```js
-{
-    id: "list_123",
-    ownerId: "user_123",
-    familyId: "family_123",
-    name: "Wocheneinkauf",
-    listType: "shopping",
-    isShared: true,
-    items: [],
-    createdAt: "2026-07-04 20:00:00"
-}
-```
-
-Erlaubte Listentypen:
-
-| Wert | Bedeutung |
-|---|---|
-| `shopping` | Einkaufsliste |
-| `household` | Haushaltsliste |
-| `other` | sonstige Liste |
+Der didaktische Gedanke der Reihe bleibt dabei gleich: Jede neue Funktion löst ein konkretes Problem des vorherigen Standes. Dadurch entsteht keine Sammlung isolierter Codebeispiele, sondern eine fortlaufende Anwendung mit wachsender fachlicher und technischer Tiefe.
 
 ---
 
-## Warum Listentypen?
+## Ausgangspunkt aus dem vorherigen Teil
 
-Ohne Typ sieht jede Liste gleich aus. Für eine Haushalts-App ist das auf Dauer unübersichtlich.
+- Gemeinschaftslisten besitzen jetzt fachliche Typen.
+- Die Administration ist in Tabs gegliedert.
+- Listen können im Adminbereich besser gefiltert und verwaltet werden.
+- Die erste Tutorialhälfte endet mit einer stabilen Mehrbenutzer-/Haushaltsbasis.
 
-Ein Haushalt kann zum Beispiel gleichzeitig haben:
-
-- Wocheneinkauf
-- Drogerie
-- Putzplan
-- Reparaturen
-- Schulbedarf
-- Sonstiges
-
-Mit `listType` kann die Oberfläche diese Listen sauber gruppieren.
+Dieser Ausgangspunkt bestimmt, warum die Erweiterung in diesem Kapitel sinnvoll ist und welche Grenzen weiterhin bewusst stehen bleiben.
 
 ---
 
-## Gemeinschaftslisten in Teil 10
+## Fachliche Grundlagen
 
-Gemeinschaftslisten bleiben weiterhin haushaltsbezogen.
-
-Ein normaler Nutzer sieht:
-
-- eigene private Listen
-- eigene freigegebene Listen
-- gemeinsame Einkaufslisten des eigenen Haushalts
-- gemeinsame Haushaltslisten des eigenen Haushalts
-- sonstige gemeinsame Listen des eigenen Haushalts
-
-Ein Nutzer sieht keine Gemeinschaftslisten fremder Haushalte.
+- **listType**: Jede Liste erhält einen fachlichen Typ.
+- **Gruppierte Darstellung**: Gemeinschaftslisten können nach Zweck angezeigt werden.
+- **Admin-Tabs**: Haushalte, Benutzer und Listen werden visuell getrennt.
+- **Filterung**: Admins können Listen nach Typ, Sichtbarkeit oder Besitz filtern.
+- **Backendvalidierung**: Nur erlaubte Typwerte werden akzeptiert.
 
 ---
 
-## Admin-Tabs
+## Technische Umsetzung im Überblick
 
-Die Admin-Verwaltung war inzwischen zu voll für eine einzige Ansicht. Deshalb wird sie in Tabs getrennt.
+- Listen erhalten das Feld `listType` mit Werten wie `shopping`, `household` oder `other`.
+- `update_list_type` erlaubt Besitzern oder Admins, den Listentyp zu ändern.
+- Die Oberfläche gruppiert gemeinsame Listen nach Typ.
+- Der Adminbereich wird in Tabs für Haushalte, Benutzer und Listen aufgeteilt.
+- Die Listenverwaltung erhält Filter und Aktionen für Typ, Besitzer und Sichtbarkeit.
 
-Tabs:
-
-- Haushalte
-- Benutzer
-- Listen
-
-Das ist keine neue Sicherheitsgrenze. Die Rechteprüfung bleibt weiterhin im Backend. Die Tabs verbessern nur die Bedienbarkeit.
-
----
-
-## Neue API-Aktion
+### Projektstand nach Teil 10
 
 ```txt
-update_list_type
+versions/
+└── 10-shared-lists-admin-tabs/
+    ├── api.php
+    ├── auth.php
+    ├── config.php
+    ├── index.php
+    ├── installer.php
+    ├── login.php
+    ├── data/
+    │   └── .htaccess
+    └── includes/
+        ├── bootstrap.php
+        ├── security.php
+        └── storage.php
 ```
 
-Diese Aktion ändert den Typ einer Liste.
+---
 
-Nur Besitzer oder Admins dürfen den Typ einer Liste ändern.
+## Architekturentscheidung
+
+Listentypen sind eine fachliche Erweiterung, keine reine UI-Spielerei. Sie gehören daher in das Datenmodell und nicht nur als CSS-Klasse in die Oberfläche.
+Tabs trennen Bedienbereiche, aber keine Sicherheitsbereiche. Die eigentliche Absicherung bleibt im Backend.
+Teil 10 stabilisiert die bisherige Plattform, bevor neue Module wie Todos, Nachrichten oder Kalender ergänzt werden.
+
+**Wichtig:** Die Reihe bleibt bewusst ohne Framework-Overkill. Ziel ist nicht, ein modernes Framework zu umgehen, sondern zuerst die Grundmechanik einer Webanwendung zu verstehen: Datenmodell, Oberfläche, Anfrage, Antwort, Speicherung, Validierung und Rechteprüfung.
 
 ---
 
-## Sicherheit
+## Pro und Kontra
 
-Die Sicherheitsbasis bleibt erhalten:
+### Vorteile
 
-- CSRF-Token für POST-Aktionen
-- serverseitige Rollenprüfung
-- serverseitige Validierung
-- feste erlaubte Listentypen
-- keine freie SQL-Verkettung mit Benutzereingaben
-- PDO Prepared Statements bei SQLite/MySQL
-- sichere Textausgabe im Frontend mit `textContent`
+- bessere fachliche Ordnung der Listen
+- übersichtlichere Nutzeroberfläche
+- Adminbereich wird deutlich besser bedienbar
+- Backend akzeptiert nur definierte Listentypen
+- gute Grundlage für weitere Module
+
+### Nachteile
+
+- zusätzliches Datenfeld muss in allen Speicherarten berücksichtigt werden
+- mehr UI-Zustand durch Tabs und Filter
+- Migration älterer Listen braucht Defaultwerte
+- Tabs dürfen nicht mit echter Rechteprüfung verwechselt werden
+- Adminbereich bleibt weiter ausbaufähig
+
+Diese Nachteile sind in diesem Kapitel nicht automatisch Fehler. Viele davon sind bewusste Zwischenstände, die in späteren Teilen gezielt aufgelöst werden.
 
 ---
 
-## Testfälle
+## Sicherheits- und Qualitätsaspekte
+
+- `listType` wird serverseitig gegen feste erlaubte Werte geprüft.
+- Nur Besitzer oder Admins dürfen den Typ einer Liste ändern.
+- Haushaltsgrenzen bleiben weiterhin verbindlich.
+- Admin-Tabs ändern nichts an der Backendprüfung. Jede kritische API-Aktion bleibt geschützt.
+- Textausgaben im Frontend sollten weiterhin über sichere DOM-Methoden erfolgen.
+
+---
+
+## Typische Fehlerquellen
+
+- Listentyp nur im Frontend speichern und beim Reload verlieren
+- beliebige Typwerte aus Requests akzeptieren
+- Tabs als Rechteprüfung missverstehen
+- Filter nur optisch anwenden, aber Adminaktionen nicht prüfen
+- alte Listen ohne `listType` nicht mit Standardwert behandeln
+
+---
+
+## Testcheckliste
 
 | Test | Erwartetes Ergebnis |
-|---|---|
-| Einkaufsliste erstellen | Liste erscheint als Einkaufsliste |
-| Haushaltsliste erstellen | Liste erscheint als Haushaltsliste |
-| Liste gemeinsam freigeben | Liste erscheint im passenden Gemeinschaftsbereich |
+| --- | --- |
+| Einkaufsliste erstellen | Liste erscheint in der Einkaufsgruppe |
+| Haushaltsliste erstellen | Liste erscheint in der Haushaltsgruppe |
 | Listentyp ändern | Liste wandert in die passende Gruppe |
-| Nutzer aus anderem Haushalt | sieht diese Gemeinschaftsliste nicht |
-| Admin öffnet Verwaltung | sieht Tabs für Haushalte, Benutzer, Listen |
-| Admin filtert Listen nach Typ | nur passende Listen werden angezeigt |
-| ungültiger Listentyp per API | Anfrage wird abgelehnt |
+| ungültigen Typ per API senden | Backend lehnt Anfrage ab |
+| Admin öffnet Verwaltung | Tabs für Haushalte, Benutzer und Listen sind sichtbar |
+| Admin filtert Listen | nur passende Listen werden angezeigt |
+| Nutzer aus anderem Haushalt | sieht fremde Gemeinschaftsliste nicht |
 
 ---
 
-## Nächster Schritt
+## Was wurde gegenüber dem vorherigen Stand verbessert?
 
-Teil 11 kann jetzt sauber Todos ergänzen.
+- Gemeinschaftslisten besitzen jetzt fachliche Typen.
+- Die Administration ist in Tabs gegliedert.
+- Listen können im Adminbereich besser gefiltert und verwaltet werden.
+- Die erste Tutorialhälfte endet mit einer stabilen Mehrbenutzer-/Haushaltsbasis.
 
-Dabei kann dieselbe Logik genutzt werden:
+---
 
-- eigene Todos
-- Haushalts-Todos
-- spätere Zuweisung an Benutzer
-- Status offen/erledigt
-- Fälligkeit
+## Grenzen dieser Version
+
+- noch keine Todos
+- noch keine Nachrichten oder Chats
+- noch kein Kalender
+- kein fein abgestuftes Rechte- und Einladungssystem
+- noch keine Testsuite oder Migrationen für Releases
+
+---
+
+## Ausblick auf den nächsten Teil
+
+Teil 11 kann auf dieser Basis Todos ergänzen: private Aufgaben, Haushaltsaufgaben, Status, Fälligkeit und spätere Zuweisung an Benutzer.
+
+---
+
+## Einordnung für die Praxis
+
+Dieser Teil ist ein Lernschritt, kein fertiges Produkt. Genau darin liegt der Wert der Reihe: Jeder Stand ist klein genug, um verstanden zu werden, aber konkret genug, um später erweitert zu werden.
+
+In einem professionellen Umfeld würde man zusätzlich auf saubere Release-Stände, automatisierte Tests, Konfigurationsbeispiele, Datenmigrationen, Deployment-Dokumentation und eine klare Trennung zwischen Demo- und Produktivbetrieb achten. Die Tutorialreihe führt diese Themen schrittweise ein, ohne den Einstieg unnötig zu überladen.
+
+---
+
+## Navigation
+
+[← Teil 09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [README / Übersicht](../README.md) | kein nächster Teil →
