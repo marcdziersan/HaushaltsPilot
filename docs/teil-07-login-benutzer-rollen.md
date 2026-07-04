@@ -117,6 +117,31 @@ Neue Benutzer über die Registrierung erhalten automatisch die Rolle `user`.
 
 ---
 
+
+### Speicher löschen und neu erstellen
+
+Der Installer besitzt jetzt standardmäßig die Option:
+
+```txt
+Vorhandenen Speicher löschen und neu erstellen
+```
+
+Diese Option ist bewusst vorausgewählt. Für diese Tutorial-Reihe ist das die saubere Standardmethode, weil sich das Datenmodell zwischen den Teilen weiterentwickelt.
+
+Je nach Speicherart passiert dabei Folgendes:
+
+| Speicher | Verhalten beim Reset |
+|---|---|
+| JSON | `data/lists.json` wird gelöscht und neu erstellt |
+| SQLite | `data/app.sqlite` wird gelöscht und neu erstellt |
+| MySQL/MariaDB | Die gewählte Datenbank wird mit `DROP DATABASE IF EXISTS` gelöscht und danach neu erstellt |
+
+Wichtig: Bei MySQL/MariaDB darf die Installer-Datenbankkennung nur Buchstaben, Zahlen und Unterstriche enthalten. Der Datenbankname wird geprüft und zusätzlich als Identifier gequotet.
+
+Wenn bereits eine `config.php` existiert, muss zusätzlich bewusst bestätigt werden, dass die bestehende Installation überschrieben werden soll.
+
+---
+
 ## Admin-Funktionen
 
 Admins können in der Oberfläche:

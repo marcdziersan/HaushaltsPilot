@@ -48,16 +48,25 @@ function write_config_file(string $configFile, array $config): void
     }
 }
 
-function install_json_storage(string $dataDir, array $data): void
+function install_json_storage(string $dataDir, array $data, bool $resetStorage): void
 {
     $jsonFile = $dataDir . '/lists.json';
+
+    if ($resetStorage && file_exists($jsonFile) && !unlink($jsonFile)) {
+        throw new RuntimeException('Vorhandene JSON-Datendatei konnte nicht gelöscht werden.');
+    }
+
     $storage = new JsonStorage($jsonFile);
     $storage->save($data);
 }
 
-function install_sqlite_storage(string $dataDir, array $data): void
+function install_sqlite_storage(string $dataDir, array $data, bool $resetStorage): void
 {
     $sqliteFile = $dataDir . '/app.sqlite';
+
+    if ($resetStorage && file_exists($sqliteFile) && !unlink($sqliteFile)) {
+        throw new RuntimeException('Vorhandene SQLite-Datenbank konnte nicht gelöscht werden.');
+    }
 
     $pdo = new PDO('sqlite:' . $sqliteFile);
     StorageFactory::configurePdo($pdo);
@@ -67,7 +76,7 @@ function install_sqlite_storage(string $dataDir, array $data): void
     $storage->save($data);
 }
 
-function install_mysql_storage(array $mysql, array $data): void
+function install_mysql_storage(array $mysql, array $data, bool $resetStorage): void
 {
     $database = (string) $mysql['database'];
 
@@ -85,6 +94,10 @@ function install_mysql_storage(array $mysql, array $data): void
     StorageFactory::configurePdo($serverPdo);
 
     $quotedDatabase = '`' . str_replace('`', '``', $database) . '`';
+
+    if ($resetStorage) {
+        $serverPdo->exec('DROP DATABASE IF EXISTS ' . $quotedDatabase);
+    }
 
     $serverPdo->exec(
         'CREATE DATABASE IF NOT EXISTS ' . $quotedDatabase .
@@ -130,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $adminDisplayName = clean_text(post_value('admin_display_name', 'Admin'), MAX_DISPLAY_NAME_LENGTH);
         $adminPassword = clean_password(post_value('admin_password', ''));
         $allowRegistration = post_value('allow_registration', 'yes') === 'yes';
+        $resetStorage = post_value('reset_storage', 'yes') === 'yes';
 
         ensure_data_directory($dataDir);
 
@@ -145,15 +159,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $installData = create_install_data($adminUsername, $adminDisplayName, $adminPassword);
 
         if ($storage === 'json') {
-            install_json_storage($dataDir, $installData);
+            install_json_storage($dataDir, $installData, $resetStorage);
         }
 
         if ($storage === 'sqlite') {
-            install_sqlite_storage($dataDir, $installData);
+            install_sqlite_storage($dataDir, $installData, $resetStorage);
         }
 
         if ($storage === 'mysql') {
-            install_mysql_storage($mysql, $installData);
+            install_mysql_storage($mysql, $installData, $resetStorage);
         }
 
         $config = [
@@ -209,7 +223,7 @@ $isInstalled = file_exists($configFile);
         <p>Teil 07 installiert Speicher, Datenmodell, Admin-Konto, Benutzerrollen und die vorbereitete Rechtebasis.</p>
 
         <?php if ($isInstalled): ?>
-            <div class="notice">Es existiert bereits eine <code>config.php</code>. Eine Neuinstallation überschreibt Daten nur, wenn du dies ausdrücklich aktivierst.</div>
+            <div class="notice">Es existiert bereits eine <code>config.php</code>. Eine Neuinstallation ist nur möglich, wenn du das Überschreiben ausdrücklich aktivierst. Der Speicher-Reset ist standardmäßig aktiv.</div>
         <?php endif; ?>
 
         <?php if ($message !== ''): ?>
@@ -254,10 +268,16 @@ $isInstalled = file_exists($configFile);
                 </div>
             </fieldset>
 
+            <fieldset>
+                <legend>Speicher neu erstellen</legend>
+                <label class="radio-card"><input type="checkbox" name="reset_storage" value="yes" checked><span>Vorhandenen Speicher löschen und neu erstellen<small>Standardmethode für diese Tutorial-Reihe. JSON-Datei wird gelöscht, SQLite-Datei wird gelöscht, MySQL/MariaDB-Datenbank wird per <code>DROP DATABASE IF EXISTS</code> entfernt und danach frisch erstellt.</small></span></label>
+            </fieldset>
+
+
             <?php if ($isInstalled): ?>
                 <fieldset>
                     <legend>Neuinstallation bestätigen</legend>
-                    <label class="radio-card"><input type="checkbox" name="allow_overwrite" value="yes"><span>Bestehende Installation überschreiben<small>Achtung: Dabei wird der aktuelle Speicher neu initialisiert.</small></span></label>
+                    <label class="radio-card"><input type="checkbox" name="allow_overwrite" value="yes"><span>Bestehende Installation überschreiben<small>Erforderlich, wenn bereits eine config.php existiert. Zusammen mit dem aktivierten Speicher-Reset wird die gewählte Datenhaltung frisch aufgebaut.</small></span></label>
                 </fieldset>
             <?php endif; ?>
 
