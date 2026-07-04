@@ -1,5 +1,28 @@
 # Teil 02 – Einkaufsliste mit LocalStorage
 
+<!-- tutorial-nav:start -->
+
+## Tutorial-Navigation
+
+**Aktueller Teil:** Teil 02 – Einkaufsliste mit LocalStorage  
+**Quelltext zu diesem Teil:** [versions/02-localstorage](../versions/02-localstorage/)
+
+[← Teil 01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [README / Übersicht](../README.md) | [Teil 03 – Mengen, Kategorien und Status →](teil-03-kategorien-mengen-status.md)
+
+| Teil | Dokumentation | Quelltext | Ergebnis |
+| ---: | --- | --- | --- |
+| 01 | [01 – Einfache Einkaufsliste](teil-01-einfache-einkaufsliste.md) | [Version 01](../versions/01-simple-shopping-list/) | Artikel hinzufügen/löschen |
+| 02 | **[02 – Einkaufsliste mit LocalStorage](teil-02-localstorage.md)** | **[Version 02](../versions/02-localstorage/)** | Speicherung im Browser |
+| 03 | [03 – Mengen, Kategorien und Status](teil-03-kategorien-mengen-status.md) | [Version 03](../versions/03-categories-status/) | strukturierte Artikeldaten |
+| 04 | [04 – Mehrere Einzellisten](teil-04-mehrere-einzellisten.md) | [Version 04](../versions/04-multiple-lists/) | mehrere getrennte Listen |
+| 05 | [05 – PHP-JSON-Backend](teil-05-php-json-backend.md) | [Version 05](../versions/05-json-backend/) | serverseitige JSON-Speicherung |
+| 06 | [06 – Konfigurierbare Speicherung](teil-06-konfigurierbare-speicherung.md) | [Version 06](../versions/06-configurable-storage/) | JSON, SQLite oder MySQL/MariaDB |
+| 07 | [07 – Login, Benutzer und Rollen](teil-07-login-benutzer-rollen.md) | [Version 07](../versions/07-login-roles/) | Registrierung, Login, Sessions, Rollen |
+| 08 | [08 – Persönliche und gemeinsame Listen](teil-08-persoenliche-und-gemeinsame-listen.md) | [Version 08](../versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
+| 09 | [09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [Version 09](../versions/09-families-households/) | Haushaltszuordnung für Nutzer |
+| 10 | [10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [Version 10](../versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
+
+<!-- tutorial-nav:end -->
 In Teil 01 haben wir eine einfache Einkaufsliste gebaut. Die Liste funktionierte bereits im Browser, hatte aber noch einen entscheidenden Nachteil: Nach dem Neuladen der Seite waren alle Einträge verschwunden.
 
 In diesem zweiten Teil erweitern wir die Anwendung um `localStorage`.
