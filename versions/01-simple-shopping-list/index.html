@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HaushaltsPilot – Teil 01 Einkaufsliste</title>
+
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --danger: #dc2626;
+            --danger-dark: #b91c1c;
+            --border: #d1d5db;
+            --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+            --radius: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #e0ecff, #f8fafc);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 520px;
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .app-header {
+            margin-bottom: 22px;
+            text-align: center;
+        }
+
+        .app-header h1 {
+            margin: 0 0 8px;
+            font-size: 1.8rem;
+        }
+
+        .app-header p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .add-btn {
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .list-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .shopping-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .shopping-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+        }
+
+        .shopping-item span {
+            word-break: break-word;
+        }
+
+        .delete-btn {
+            background: var(--danger);
+            color: white;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger-dark);
+        }
+
+        .empty-message {
+            text-align: center;
+            color: var(--muted);
+            background: #f9fafb;
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 12px;
+        }
+
+        .footer-note {
+            margin-top: 22px;
+            font-size: 0.82rem;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 480px) {
+            .app {
+                padding: 18px;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            .add-btn {
+                width: 100%;
+            }
+
+            .app-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <main class="app">
+        <header class="app-header">
+            <h1>Meine Einkaufsliste</h1>
+            <p>
+                Teil 01 der HaushaltsPilot-Tutorial-Reihe.
+                Eine einfache Einkaufsliste ohne Speicherung.
+            </p>
+        </header>
+
+        <section class="input-row" aria-label="Artikel hinzufügen">
+            <input 
+                type="text" 
+                id="itemInput" 
+                placeholder="Artikel eingeben, z. B. Milch"
+                autocomplete="off"
+            >
+            <button class="add-btn" id="addButton">Hinzufügen</button>
+        </section>
+
+        <section class="list-info">
+            <span>Artikel in der Liste:</span>
+            <strong id="itemCount">0</strong>
+        </section>
+
+        <ul class="shopping-list" id="shoppingList"></ul>
+
+        <div class="empty-message" id="emptyMessage">
+            Die Liste ist leer. Füge deinen ersten Artikel hinzu.
+        </div>
+
+        <p class="footer-note">
+            In Teil 02 speichern wir diese Liste mit LocalStorage im Browser.
+        </p>
+    </main>
+
+    <script>
+        const itemInput = document.getElementById("itemInput");
+        const addButton = document.getElementById("addButton");
+        const shoppingList = document.getElementById("shoppingList");
+        const itemCount = document.getElementById("itemCount");
+        const emptyMessage = document.getElementById("emptyMessage");
+
+        let items = [];
+
+        function addItem() {
+            const itemText = itemInput.value.trim();
+
+            if (itemText === "") {
+                itemInput.focus();
+                return;
+            }
+
+            items.push(itemText);
+            itemInput.value = "";
+            itemInput.focus();
+
+            renderList();
+        }
+
+        function deleteItem(index) {
+            items.splice(index, 1);
+            renderList();
+        }
+
+        function renderList() {
+            shoppingList.innerHTML = "";
+
+            items.forEach(function(item, index) {
+                const listItem = document.createElement("li");
+                listItem.className = "shopping-item";
+
+                const itemName = document.createElement("span");
+                itemName.textContent = item;
+
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "delete-btn";
+                deleteButton.textContent = "Löschen";
+                deleteButton.addEventListener("click", function() {
+                    deleteItem(index);
+                });
+
+                listItem.appendChild(itemName);
+                listItem.appendChild(deleteButton);
+                shoppingList.appendChild(listItem);
+            });
+
+            updateInfo();
+        }
+
+        function updateInfo() {
+            itemCount.textContent = items.length;
+
+            if (items.length === 0) {
+                emptyMessage.style.display = "block";
+            } else {
+                emptyMessage.style.display = "none";
+            }
+        }
+
+        addButton.addEventListener("click", addItem);
+
+        itemInput.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                addItem();
+            }
+        });
+
+        updateInfo();
+    </script>
+
+</body>
+</html>
