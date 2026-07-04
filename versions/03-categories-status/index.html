@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HaushaltsPilot – Teil 03 Kategorien, Mengen und Status</title>
+
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --success-dark: #15803d;
+            --danger: #dc2626;
+            --danger-dark: #b91c1c;
+            --warning: #f59e0b;
+            --warning-dark: #d97706;
+            --border: #d1d5db;
+            --soft: #f9fafb;
+            --done: #e5e7eb;
+            --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+            --radius: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #e0ecff, #f8fafc);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 720px;
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .app-header {
+            margin-bottom: 22px;
+            text-align: center;
+        }
+
+        .app-header h1 {
+            margin: 0 0 8px;
+            font-size: 1.8rem;
+        }
+
+        .app-header p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 1rem;
+            outline: none;
+            background: white;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .add-btn {
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .reset-btn {
+            width: 100%;
+            background: var(--warning);
+            color: white;
+            font-weight: bold;
+            margin-bottom: 18px;
+        }
+
+        .reset-btn:hover {
+            background: var(--warning-dark);
+        }
+
+        .reset-btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            min-height: 22px;
+            margin-bottom: 12px;
+            font-size: 0.88rem;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: var(--soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-card span {
+            display: block;
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin-bottom: 4px;
+        }
+
+        .stat-card strong {
+            font-size: 1.3rem;
+        }
+
+        .shopping-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .shopping-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 10px;
+            background: var(--soft);
+        }
+
+        .shopping-item.done {
+            background: var(--done);
+            opacity: 0.75;
+        }
+
+        .shopping-item.done .item-name {
+            text-decoration: line-through;
+            color: var(--muted);
+        }
+
+        .item-main {
+            min-width: 0;
+        }
+
+        .item-name {
+            display: block;
+            font-weight: bold;
+            word-break: break-word;
+            margin-bottom: 5px;
+        }
+
+        .item-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .badge {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 0.78rem;
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            background: var(--success);
+            color: white;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .toggle-btn:hover {
+            background: var(--success-dark);
+        }
+
+        .delete-btn {
+            background: var(--danger);
+            color: white;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger-dark);
+        }
+
+        .empty-message {
+            text-align: center;
+            color: var(--muted);
+            background: var(--soft);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 12px;
+        }
+
+        .footer-note {
+            margin-top: 22px;
+            font-size: 0.82rem;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 720px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .add-btn {
+                width: 100%;
+            }
+
+            .shopping-item {
+                grid-template-columns: 1fr;
+            }
+
+            .item-actions {
+                width: 100%;
+            }
+
+            .toggle-btn,
+            .delete-btn {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .app {
+                padding: 18px;
+            }
+
+            .app-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <main class="app">
+        <header class="app-header">
+            <h1>Meine Einkaufsliste</h1>
+            <p>
+                Teil 03 der HaushaltsPilot-Tutorial-Reihe.
+                Artikel haben jetzt Menge, Kategorie und Status.
+            </p>
+        </header>
+
+        <form class="form-grid" id="itemForm">
+            <input
+                type="text"
+                id="itemNameInput"
+                placeholder="Artikel, z. B. Milch"
+                autocomplete="off"
+            >
+
+            <input
+                type="text"
+                id="itemAmountInput"
+                placeholder="Menge, z. B. 2 Liter"
+                autocomplete="off"
+            >
+
+            <select id="itemCategoryInput">
+                <option value="Lebensmittel">Lebensmittel</option>
+                <option value="Getränke">Getränke</option>
+                <option value="Haushalt">Haushalt</option>
+                <option value="Drogerie">Drogerie</option>
+                <option value="Sonstiges">Sonstiges</option>
+            </select>
+
+            <button class="add-btn" type="submit">Hinzufügen</button>
+        </form>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <button class="reset-btn" id="resetButton" disabled>
+            Liste zurücksetzen
+        </button>
+
+        <section class="stats" aria-label="Listenstatistik">
+            <div class="stat-card">
+                <span>Gesamt</span>
+                <strong id="totalCount">0</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Offen</span>
+                <strong id="openCount">0</strong>
+            </div>
+
+            <div class="stat-card">
+                <span>Erledigt</span>
+                <strong id="doneCount">0</strong>
+            </div>
+        </section>
+
+        <ul class="shopping-list" id="shoppingList"></ul>
+
+        <div class="empty-message" id="emptyMessage">
+            Die Liste ist leer. Füge deinen ersten Artikel hinzu.
+        </div>
+
+        <p class="footer-note">
+            Die Daten werden mit localStorage direkt in deinem Browser gespeichert.
+            In Teil 04 bauen wir daraus mehrere Einzellisten.
+        </p>
+    </main>
+
+    <script>
+        const STORAGE_KEY = "haushaltspilot_shopping_items_v3";
+
+        const itemForm = document.getElementById("itemForm");
+        const itemNameInput = document.getElementById("itemNameInput");
+        const itemAmountInput = document.getElementById("itemAmountInput");
+        const itemCategoryInput = document.getElementById("itemCategoryInput");
+
+        const resetButton = document.getElementById("resetButton");
+        const shoppingList = document.getElementById("shoppingList");
+        const emptyMessage = document.getElementById("emptyMessage");
+        const statusMessage = document.getElementById("statusMessage");
+
+        const totalCount = document.getElementById("totalCount");
+        const openCount = document.getElementById("openCount");
+        const doneCount = document.getElementById("doneCount");
+
+        let items = [];
+
+        function createId() {
+            return "item-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+        }
+
+        function loadItems() {
+            const savedItems = localStorage.getItem(STORAGE_KEY);
+
+            if (savedItems === null) {
+                items = [];
+                return;
+            }
+
+            try {
+                const parsedItems = JSON.parse(savedItems);
+
+                if (Array.isArray(parsedItems)) {
+                    items = parsedItems.filter(isValidItem);
+                } else {
+                    items = [];
+                    localStorage.removeItem(STORAGE_KEY);
+                    showStatus("Ungültige gespeicherte Daten wurden entfernt.");
+                }
+            } catch (error) {
+                items = [];
+                localStorage.removeItem(STORAGE_KEY);
+                showStatus("Gespeicherte Daten konnten nicht geladen werden.");
+            }
+        }
+
+        function isValidItem(item) {
+            return (
+                typeof item === "object" &&
+                item !== null &&
+                typeof item.id === "string" &&
+                typeof item.name === "string" &&
+                typeof item.amount === "string" &&
+                typeof item.category === "string" &&
+                typeof item.done === "boolean"
+            );
+        }
+
+        function saveItems() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        }
+
+        function addItem() {
+            const name = itemNameInput.value.trim();
+            const amount = itemAmountInput.value.trim();
+            const category = itemCategoryInput.value;
+
+            if (name === "") {
+                showStatus("Bitte gib einen Artikelnamen ein.");
+                itemNameInput.focus();
+                return;
+            }
+
+            const newItem = {
+                id: createId(),
+                name: name,
+                amount: amount,
+                category: category,
+                done: false
+            };
+
+            items.push(newItem);
+            saveItems();
+
+            itemNameInput.value = "";
+            itemAmountInput.value = "";
+            itemCategoryInput.value = "Lebensmittel";
+            itemNameInput.focus();
+
+            renderList();
+            showStatus("Artikel wurde hinzugefügt.");
+        }
+
+        function toggleItemDone(id) {
+            const item = items.find(function(currentItem) {
+                return currentItem.id === id;
+            });
+
+            if (!item) {
+                return;
+            }
+
+            item.done = !item.done;
+            saveItems();
+            renderList();
+
+            if (item.done) {
+                showStatus("Artikel wurde als erledigt markiert.");
+            } else {
+                showStatus("Artikel wurde wieder geöffnet.");
+            }
+        }
+
+        function deleteItem(id) {
+            items = items.filter(function(item) {
+                return item.id !== id;
+            });
+
+            saveItems();
+            renderList();
+            showStatus("Artikel wurde gelöscht.");
+        }
+
+        function resetList() {
+            if (items.length === 0) {
+                return;
+            }
+
+            const confirmReset = confirm("Möchtest du wirklich die komplette Einkaufsliste löschen?");
+
+            if (!confirmReset) {
+                return;
+            }
+
+            items = [];
+            localStorage.removeItem(STORAGE_KEY);
+            renderList();
+            showStatus("Die komplette Liste wurde zurückgesetzt.");
+        }
+
+        function renderList() {
+            shoppingList.innerHTML = "";
+
+            items.forEach(function(item) {
+                const listItem = document.createElement("li");
+                listItem.className = "shopping-item";
+
+                if (item.done) {
+                    listItem.classList.add("done");
+                }
+
+                const itemMain = document.createElement("div");
+                itemMain.className = "item-main";
+
+                const itemName = document.createElement("span");
+                itemName.className = "item-name";
+                itemName.textContent = item.name;
+
+                const itemMeta = document.createElement("div");
+                itemMeta.className = "item-meta";
+
+                const amountBadge = document.createElement("span");
+                amountBadge.className = "badge";
+                amountBadge.textContent = item.amount !== "" ? "Menge: " + item.amount : "Menge: keine Angabe";
+
+                const categoryBadge = document.createElement("span");
+                categoryBadge.className = "badge";
+                categoryBadge.textContent = "Kategorie: " + item.category;
+
+                const statusBadge = document.createElement("span");
+                statusBadge.className = "badge";
+                statusBadge.textContent = item.done ? "Status: erledigt" : "Status: offen";
+
+                itemMeta.appendChild(amountBadge);
+                itemMeta.appendChild(categoryBadge);
+                itemMeta.appendChild(statusBadge);
+
+                itemMain.appendChild(itemName);
+                itemMain.appendChild(itemMeta);
+
+                const itemActions = document.createElement("div");
+                itemActions.className = "item-actions";
+
+                const toggleButton = document.createElement("button");
+                toggleButton.className = "toggle-btn";
+                toggleButton.textContent = item.done ? "Öffnen" : "Erledigt";
+                toggleButton.addEventListener("click", function() {
+                    toggleItemDone(item.id);
+                });
+
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "delete-btn";
+                deleteButton.textContent = "Löschen";
+                deleteButton.addEventListener("click", function() {
+                    deleteItem(item.id);
+                });
+
+                itemActions.appendChild(toggleButton);
+                itemActions.appendChild(deleteButton);
+
+                listItem.appendChild(itemMain);
+                listItem.appendChild(itemActions);
+
+                shoppingList.appendChild(listItem);
+            });
+
+            updateInfo();
+        }
+
+        function updateInfo() {
+            const total = items.length;
+            const done = items.filter(function(item) {
+                return item.done === true;
+            }).length;
+            const open = total - done;
+
+            totalCount.textContent = total;
+            openCount.textContent = open;
+            doneCount.textContent = done;
+
+            if (items.length === 0) {
+                emptyMessage.style.display = "block";
+                resetButton.disabled = true;
+            } else {
+                emptyMessage.style.display = "none";
+                resetButton.disabled = false;
+            }
+        }
+
+        function showStatus(message) {
+            statusMessage.textContent = message;
+
+            window.clearTimeout(showStatus.timeoutId);
+
+            showStatus.timeoutId = window.setTimeout(function() {
+                statusMessage.textContent = "";
+            }, 2500);
+        }
+
+        itemForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+            addItem();
+        });
+
+        resetButton.addEventListener("click", resetList);
+
+        loadItems();
+        renderList();
+    </script>
+
+</body>
+</html>
