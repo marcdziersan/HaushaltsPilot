@@ -27,6 +27,7 @@ ist eine mehrteilige Lern- und Tutorial-Reihe, die zeigt, wie aus einer einfache
 |   19 | Export & Backup            | JSON/CSV-Export                        |
 |   20 | Abschlussversion           | saubere Finalversion                   |
 
+<pre>
 HaushaltsPilot
 ├── Einkauf
 │   ├── persönliche Listen
@@ -49,6 +50,7 @@ HaushaltsPilot
     ├── Haushaltsgruppe
     ├── Mitglieder
     └── Rollen
+</pre>
 
 v0.1.0-simple-shopping-list
 v0.2.0-localstorage
