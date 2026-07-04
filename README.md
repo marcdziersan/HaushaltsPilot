@@ -52,6 +52,7 @@ HaushaltsPilot
     └── Rollen
 </pre>
 
+<pre>
 v0.1.0-simple-shopping-list
 v0.2.0-localstorage
 v0.3.0-categories-status
@@ -72,3 +73,4 @@ v1.7.0-dashboard
 v1.8.0-security-cleanup
 v1.9.0-export-backup
 v2.0.0-final
+</pre>
