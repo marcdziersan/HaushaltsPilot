@@ -284,4 +284,4 @@ In einer produktiven Anwendung würde man zusätzlich Datenschutz, Löschfristen
 
 ## Navigation
 
-[← Teil 13 – Einzelchat](teil-13-einzelchat.md) | [README / Übersicht](../README.md) | [Teil 15 – Persönlicher Kalender →](#ausblick-auf-den-naechsten-teil)
+[← Teil 13 – Einzelchat](teil-13-einzelchat.md) | [README / Übersicht](../README.md) | [Teil 15 – Persönlicher Kalender →](teil-15-persoenlicher-kalender.md)
