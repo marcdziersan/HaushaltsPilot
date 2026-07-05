@@ -219,14 +219,13 @@ Das ist bewusst so gehalten, damit der Kern sauber nachvollziehbar bleibt.
 
 ## Ausblick auf den nächsten Teil
 
-Teil 16 kann den Kalender vertiefen. Sinnvolle Erweiterungen wären:
+Teil 16 vertieft den Kalender direkt weiter. Dort werden die bisher bewusst offenen Punkte ausgebaut:
 
 - Wiederholungstermine,
 - einfache Erinnerungslogik,
 - Verknüpfung von Todos mit Kalenderterminen,
 - Kalenderfilter,
-- Wochenansicht,
-- Exportvorbereitung.
+- Wochenansicht.
 
 Da Teil 15 bereits persönliche und gemeinsame Familientermine enthält, kann Teil 16 fachlich als Kalender-Vertiefung statt als reiner Erstkontakt mit dem Familienkalender genutzt werden.
 
@@ -240,4 +239,4 @@ Produktiv würde man zusätzlich über iCal/ICS, Zeitzonen, Einladungen, Benachr
 
 ## Navigation
 
-[← Teil 14 – Familienchat](teil-14-familienchat.md) | [README / Übersicht](../README.md) | [Teil 16 – Kalender vertiefen →](#ausblick-auf-den-naechsten-teil)
+[← Teil 14 – Familienchat](teil-14-familienchat.md) | [README / Übersicht](../README.md) | [Teil 16 – Kalender vertiefen →](teil-16-kalender-vertiefung.md)
