@@ -332,7 +332,7 @@ In echten Anwendungen würde ein Chat oft mit WebSockets, Push-Benachrichtigunge
 
 ## Navigation
 
-[← Teil 12 – Personal Messages](teil-12-personal-messages.md) | [README / Übersicht](../README.md) | [Teil 14 – Familienchat →](#ausblick-auf-den-naechsten-teil)
+[← Teil 12 – Personal Messages](teil-12-personal-messages.md) | [README / Übersicht](../README.md) | [Teil 14 – Familienchat →](teil-14-familienchat.md)
 
 
 ### Abschluss: Trennung, Hintergrund-Refresh und Chat-Komfort
