@@ -191,6 +191,14 @@ $csrfToken = get_csrf_token();
         .message-bubble.own { justify-self:end; background:#e8f4ff; border-color:#b8daff; border-radius:14px 14px 4px 14px; }
         .message-bubble p { color:var(--text); white-space:pre-wrap; overflow-wrap:anywhere; }
         .message-bubble small { display:block; color:var(--muted); margin-top:7px; font-size:.76rem; }
+        .message-state { display:inline-flex; gap:4px; align-items:center; justify-content:flex-end; color:var(--muted); font-size:.74rem; font-weight:700; margin-top:5px; }
+        .message-bubble.own .message-state,.chat-bubble.own .message-state { color:rgba(255,255,255,.86); }
+        .typing-indicator { justify-self:start; display:inline-flex; align-items:center; gap:7px; color:var(--muted); background:#fff; border:1px solid var(--border); border-radius:999px; padding:7px 10px; font-size:.84rem; box-shadow:0 3px 8px rgba(15,23,42,.05); }
+        .typing-dots { display:inline-flex; gap:3px; }
+        .typing-dots span { width:5px; height:5px; border-radius:50%; background:var(--muted); opacity:.55; animation:typingPulse 1.2s infinite ease-in-out; }
+        .typing-dots span:nth-child(2) { animation-delay:.16s; }
+        .typing-dots span:nth-child(3) { animation-delay:.32s; }
+        @keyframes typingPulse { 0%,80%,100%{transform:translateY(0);opacity:.35;} 40%{transform:translateY(-3px);opacity:.9;} }
         .reply-form { display:none; grid-template-columns:1fr auto; gap:8px; margin-top:12px; }
         .reply-form.visible { display:grid; }
         .unread-badge { display:inline-grid; place-items:center; min-width:32px; height:28px; padding:0 9px; color:#fff; background:var(--danger); }
@@ -677,10 +685,14 @@ $csrfToken = get_csrf_token();
         const adminTodosPill = byId('adminTodosPill');
         const adminMessagesPill = byId('adminMessagesPill');
 
-        let appData = { currentUser:null, currentFamily:null, lists:[], activeListId:null, todos:[], adminTodos:[], messageThreads:[], chatThreads:[], messages:[], totalUnreadMessages:0, totalUnreadChats:0, adminMessages:[], users:[], activeUsers:[], families:[], isAdmin:false };
+        let appData = { currentUser:null, currentFamily:null, lists:[], activeListId:null, todos:[], adminTodos:[], messageThreads:[], chatThreads:[], messages:[], typingIndicators:[], totalUnreadMessages:0, totalUnreadChats:0, adminMessages:[], users:[], activeUsers:[], families:[], isAdmin:false };
         let activeMessageThreadId = null;
         let activeChatThreadId = null;
         let floatingChatOpen = false;
+        let activeModule = 'dashboard';
+        let backgroundRefreshBusy = false;
+        const typingTimers = {};
+        const typingLastSent = {};
         const chatEmojis = ['😀','🙂','😂','👍','🙏','❤️','🔥','✅','⚠️','🎉','🙈','😅'];
 
         async function apiGet(action) {
@@ -691,15 +703,54 @@ $csrfToken = get_csrf_token();
             const response = await fetch('api.php?action=' + encodeURIComponent(action), { method:'POST', credentials:'same-origin', headers:{ Accept:'application/json', 'Content-Type':'application/json', 'X-CSRF-Token':csrfToken }, body:JSON.stringify(payload || {}) });
             return handleApiResponse(response);
         }
+        async function apiPostQuiet(action, payload) {
+            const response = await fetch('api.php?action=' + encodeURIComponent(action), { method:'POST', credentials:'same-origin', headers:{ Accept:'application/json', 'Content-Type':'application/json', 'X-CSRF-Token':csrfToken }, body:JSON.stringify(payload || {}) });
+            return handleApiResponse(response);
+        }
         async function handleApiResponse(response) {
             let result;
             try { result = await response.json(); } catch (error) { throw new Error('Serverantwort war kein gültiges JSON.'); }
             if (!response.ok || result.success !== true) throw new Error(result.message || 'Unbekannter Serverfehler.');
             return result;
         }
-        async function loadData() {
+        async function loadData(silent) {
             try { const result = await apiGet('load'); appData = result.data; renderApp(); }
-            catch (error) { showStatus(error.message, true); }
+            catch (error) { if (silent !== true) showStatus(error.message, true); }
+        }
+        function threadHasUnread(threadId, collectionName) {
+            const thread = ((appData[collectionName] || [])).find((item) => item.id === threadId);
+            return thread && (thread.unreadCount || 0) > 0;
+        }
+        async function markVisibleThreadsRead() {
+            const jobs = [];
+            if (activeModule === 'messages' && activeMessageThreadId && threadHasUnread(activeMessageThreadId, 'messageThreads')) {
+                jobs.push(apiPostQuiet('mark_thread_read', { threadId:activeMessageThreadId }));
+            }
+            if ((activeModule === 'chats' || floatingChatOpen) && activeChatThreadId && threadHasUnread(activeChatThreadId, 'chatThreads')) {
+                jobs.push(apiPostQuiet('mark_thread_read', { threadId:activeChatThreadId }));
+            }
+            if (jobs.length === 0) return;
+            const results = await Promise.allSettled(jobs);
+            const lastSuccess = results.map((result) => result.status === 'fulfilled' ? result.value : null).filter(Boolean).pop();
+            if (lastSuccess && lastSuccess.data) { appData = lastSuccess.data; renderApp(); }
+        }
+        async function refreshDataInBackground() {
+            if (backgroundRefreshBusy || document.hidden) return;
+            backgroundRefreshBusy = true;
+            const previousMessageThreadId = activeMessageThreadId;
+            const previousChatThreadId = activeChatThreadId;
+            try {
+                const result = await apiGet('load');
+                appData = result.data;
+                activeMessageThreadId = previousMessageThreadId;
+                activeChatThreadId = previousChatThreadId;
+                renderApp();
+                await markVisibleThreadsRead();
+            } catch (error) {
+                // Hintergrund-Aktualisierung bleibt still, damit die Oberfläche nicht nervt.
+            } finally {
+                backgroundRefreshBusy = false;
+            }
         }
         function getActiveList() { return appData.lists.find((list) => list.id === appData.activeListId); }
         function getUser(userId) { return appData.users.find((user) => user.id === userId) || null; }
@@ -717,6 +768,26 @@ $csrfToken = get_csrf_token();
         function getThread(threadId) { return getMessageThread(threadId) || getChatThread(threadId); }
         function getMessagesForThread(threadId) { return (appData.messages || []).filter((message) => message.threadId === threadId); }
         function getOtherParticipant(thread) { if (!thread || !appData.currentUser) return null; const id = thread.participantIds.find((participantId) => participantId !== appData.currentUser.id) || thread.otherParticipantId || ''; return getUser(id); }
+        function getTypingUsers(channel, threadId, recipientId) {
+            return (appData.typingIndicators || []).filter(function(indicator){
+                if (indicator.channel !== channel) return false;
+                if (threadId && indicator.threadId === threadId) return true;
+                return !threadId && recipientId && indicator.recipientId === recipientId;
+            });
+        }
+        function appendTypingIndicator(container, users) {
+            if (!users || users.length === 0) return;
+            const wrap=document.createElement('div'); wrap.className='typing-indicator';
+            const dots=document.createElement('span'); dots.className='typing-dots';
+            dots.innerHTML='<span></span><span></span><span></span>';
+            const label=document.createElement('span');
+            label.textContent = users.map((user)=>user.displayName).join(', ') + (users.length === 1 ? ' schreibt …' : ' schreiben …');
+            wrap.appendChild(dots); wrap.appendChild(label); container.appendChild(wrap);
+        }
+        function deliveryText(message) {
+            if (!appData.currentUser || message.senderId !== appData.currentUser.id || !message.deliveryLabel) return '';
+            return (message.deliveryIcon || '') + ' ' + message.deliveryLabel;
+        }
         function canManageListSettings(list) { return appData.isAdmin === true || (appData.currentUser && list.ownerId === appData.currentUser.id); }
         function todayString() { return new Date().toISOString().slice(0, 10); }
         function isOverdue(todo) { return todo.status !== 'done' && todo.dueAt && todo.dueAt < todayString(); }
@@ -820,6 +891,35 @@ $csrfToken = get_csrf_token();
             if (!confirm('Nachricht wirklich löschen?')) return;
             try { const result = await apiPost('delete_message', { messageId }); appData = result.data; renderApp(); showStatus(result.message); }
             catch(error){ showStatus(error.message, true); }
+        }
+        function typingKey(channel, target) { return channel + ':' + (target.threadId || '') + ':' + (target.recipientId || ''); }
+        async function sendTypingState(channel, target, isTyping) {
+            if (!target || (!target.threadId && !target.recipientId)) return;
+            try {
+                await apiPostQuiet('set_typing', { channel:channel, threadId:target.threadId || '', recipientId:target.recipientId || '', isTyping:isTyping });
+            } catch (error) {
+                // Tippstatus ist eine Komfortfunktion und darf den eigentlichen Chat nicht blockieren.
+            }
+        }
+        function registerTypingInput(input, channel, targetFactory) {
+            if (!input) return;
+            input.addEventListener('input', function(){
+                const target = targetFactory();
+                const key = typingKey(channel, target || {});
+                window.clearTimeout(typingTimers[key]);
+                if (!target || (!target.threadId && !target.recipientId)) return;
+                if (input.value.trim() === '') { sendTypingState(channel, target, false); return; }
+                const now = Date.now();
+                if (!typingLastSent[key] || now - typingLastSent[key] > 2500) {
+                    typingLastSent[key] = now;
+                    sendTypingState(channel, target, true);
+                }
+                typingTimers[key] = window.setTimeout(function(){ sendTypingState(channel, target, false); }, 4200);
+            });
+            input.addEventListener('blur', function(){
+                const target = targetFactory();
+                if (target && (target.threadId || target.recipientId)) sendTypingState(channel, target, false);
+            });
         }
 
         async function adminCreateFamily() { const name = familyNameInput.value.trim(); if (name === '') { showStatus('Bitte gib einen Haushaltsnamen ein.', true); return; } try { const result = await apiPost('admin_create_family', { name:name }); appData = result.data; familyNameInput.value=''; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
@@ -1055,10 +1155,14 @@ $csrfToken = get_csrf_token();
                 const bubble=document.createElement('div'); bubble.className='message-bubble'; if (appData.currentUser && message.senderId===appData.currentUser.id) bubble.classList.add('own');
                 const body=document.createElement('div'); body.textContent=message.body;
                 const meta=document.createElement('small'); meta.textContent=getUserName(message.senderId) + ' → ' + getUserName(message.recipientId) + ' · ' + message.createdAt;
+                const stateText = deliveryText(message);
+                if (stateText) { const state=document.createElement('span'); state.className='message-state'; state.textContent=stateText; bubble.appendChild(body); bubble.appendChild(meta); bubble.appendChild(state); }
+                else { bubble.appendChild(body); bubble.appendChild(meta); }
                 const actions=document.createElement('div'); actions.className='inline-actions'; actions.style.marginTop='8px';
                 const del=document.createElement('button'); del.className='danger'; del.type='button'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteMessage(message.id); });
-                actions.appendChild(del); bubble.appendChild(body); bubble.appendChild(meta); bubble.appendChild(actions); messageList.appendChild(bubble);
+                actions.appendChild(del); bubble.appendChild(actions); messageList.appendChild(bubble);
             });
+            appendTypingIndicator(messageList, getTypingUsers('message', thread.id, other ? other.id : ''));
             messageList.scrollTop = messageList.scrollHeight;
         }
 
@@ -1121,9 +1225,14 @@ $csrfToken = get_csrf_token();
                 const body=document.createElement('p'); body.textContent=message.body;
                 const meta=document.createElement('small'); meta.textContent=getUserName(message.senderId) + ' · ' + message.createdAt;
                 bubble.appendChild(body); bubble.appendChild(meta);
+                const stateText = deliveryText(message);
+                if (stateText) { const state=document.createElement('span'); state.className='message-state'; state.textContent=stateText; bubble.appendChild(state); }
                 if (withDelete === true) { const actions=document.createElement('div'); actions.className='inline-actions'; actions.style.marginTop='8px'; const del=document.createElement('button'); del.className='danger'; del.type='button'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteMessage(message.id); }); actions.appendChild(del); bubble.appendChild(actions); }
                 container.appendChild(bubble);
             });
+            const thread = getChatThread(threadId);
+            const other = getOtherParticipant(thread);
+            appendTypingIndicator(container, getTypingUsers('chat', threadId, other ? other.id : ''));
             container.scrollTop = container.scrollHeight;
         }
         function renderEmojiBar(container, target) {
@@ -1205,6 +1314,7 @@ $csrfToken = get_csrf_token();
         function renderAdminTodoTable() { adminTodoTableBody.textContent=''; let todos=(appData.adminTodos || appData.todos || []).slice(); const filter=adminTodoFilter.value; if (filter==='private') todos=todos.filter((todo)=>todo.scope==='private'); if (filter==='family') todos=todos.filter((todo)=>todo.scope==='family'); if (filter==='open') todos=todos.filter((todo)=>todo.status==='open'); if (filter==='done') todos=todos.filter((todo)=>todo.status==='done'); todos.forEach(function(todo){ const row=document.createElement('tr'); [['title',todo.title],['scope',todoScopeLabel(todo.scope)],['priority',priorityLabel(todo.priority)],['assigned',getUserName(todo.assignedTo)],['due',formatDate(todo.dueAt)],['reminder',formatDate(todo.reminderAt)],['status',todoStatusLabel(todo.status)],['comments',String((todo.comments || []).length)]].forEach(function(pair){ const td=document.createElement('td'); td.textContent=pair[1]; row.appendChild(td); }); const actions=document.createElement('td'); actions.className='inline-actions'; const toggle=document.createElement('button'); toggle.className='small-btn'; toggle.textContent=todo.status==='done'?'Öffnen':'Erledigt'; toggle.addEventListener('click', function(){ toggleTodoDone(todo.id); }); const edit=document.createElement('button'); edit.className='small-btn'; edit.textContent='Titel ändern'; edit.addEventListener('click', function(){ const title=prompt('Neuer Aufgabentitel:', todo.title); if (title !== null) updateTodo(todo.id, { title:title.trim(), scope:todo.scope, priority:todo.priority, assignedTo:todo.assignedTo, dueAt:todo.dueAt, reminderAt:todo.reminderAt, calendarDate:todo.calendarDate }); }); const del=document.createElement('button'); del.className='danger'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteTodo(todo.id); }); actions.appendChild(toggle); actions.appendChild(edit); actions.appendChild(del); row.appendChild(actions); adminTodoTableBody.appendChild(row); }); }
         function switchModule(viewName) {
             if (viewName === 'admin' && appData.isAdmin !== true) viewName = 'dashboard';
+            activeModule = viewName;
             const labels = {
                 dashboard:['Dashboard','Übersicht über Listen, Todos, Nachrichten und Administration'],
                 lists:['Listen','Einkaufs-, Haushalts- und Gemeinschaftslisten'],
@@ -1256,6 +1366,13 @@ $csrfToken = get_csrf_token();
         adminMessageFilter.addEventListener('change', renderAdminMessageTable);
         adminTabButtons.forEach(function(button){ button.addEventListener('click', function(){ switchAdminTab(button.dataset.adminTab); }); });
         appNavButtons.forEach(function(button){ button.addEventListener('click', function(){ switchModule(button.dataset.view); }); });
+        registerTypingInput(messageBodyInput, 'message', function(){ return { recipientId:messageRecipientInput.value || '', threadId:'' }; });
+        registerTypingInput(replyInput, 'message', function(){ const thread=getMessageThread(activeMessageThreadId); const other=getOtherParticipant(thread); return { threadId:thread ? thread.id : '', recipientId:other ? other.id : '' }; });
+        registerTypingInput(chatStartInput, 'chat', function(){ return { recipientId:chatRecipientInput.value || '', threadId:'' }; });
+        registerTypingInput(chatReplyInput, 'chat', function(){ const thread=getChatThread(activeChatThreadId); const other=getOtherParticipant(thread); return { threadId:thread ? thread.id : '', recipientId:other ? other.id : '' }; });
+        registerTypingInput(floatingChatInput, 'chat', function(){ const thread=getChatThread(activeChatThreadId); const other=getOtherParticipant(thread); return { threadId:thread ? thread.id : '', recipientId:other ? other.id : '' }; });
+        window.setInterval(refreshDataInBackground, 6500);
+        document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshDataInBackground(); });
         switchAdminTab('families');
         switchModule('dashboard');
         loadData();

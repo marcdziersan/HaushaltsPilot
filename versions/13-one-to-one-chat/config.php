@@ -4,7 +4,7 @@ declare(strict_types=1);
 return [
     'installed' => true,
     'storage' => 'mysql',
-    'app_key' => '39e7aa01bee5e6691d18a4e9041a94fd55ff1c22f1a5ff1185e43de53a6a90f0',
+    'app_key' => 'fe58e95b0adc9829f1d928e35145786ca8071b1d255e8e0d1152bf8874f8a52b',
     'allow_registration' => true,
     'json_file' => __DIR__ . '/data/lists.json',
     'sqlite_file' => __DIR__ . '/data/app.sqlite',

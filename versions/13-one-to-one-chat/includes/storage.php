@@ -258,6 +258,21 @@ final class PdoStorage implements AppStorageInterface
             ];
         }
 
+        $typingIndicators = [];
+        $typingRows = $this->pdo
+            ->query('SELECT user_id, thread_id, recipient_id, channel, updated_at FROM typing_indicators ORDER BY updated_at DESC')
+            ->fetchAll();
+
+        foreach ($typingRows as $typingRow) {
+            $typingIndicators[] = [
+                'userId' => (string) $typingRow['user_id'],
+                'threadId' => (string) ($typingRow['thread_id'] ?? ''),
+                'recipientId' => (string) ($typingRow['recipient_id'] ?? ''),
+                'channel' => (string) $typingRow['channel'],
+                'updatedAt' => (string) $typingRow['updated_at'],
+            ];
+        }
+
         $data = [
             'families' => $families,
             'users' => $users,
@@ -266,6 +281,7 @@ final class PdoStorage implements AppStorageInterface
             'todos' => $todos,
             'messageThreads' => $messageThreads,
             'messages' => $messages,
+            'typingIndicators' => $typingIndicators,
         ];
 
         if (!is_valid_data($data)) {
@@ -284,6 +300,7 @@ final class PdoStorage implements AppStorageInterface
         try {
             $this->pdo->beginTransaction();
 
+            $this->pdo->exec('DELETE FROM typing_indicators');
             $this->pdo->exec('DELETE FROM messages');
             $this->pdo->exec('DELETE FROM thread_members');
             $this->pdo->exec('DELETE FROM message_threads');
@@ -456,6 +473,21 @@ final class PdoStorage implements AppStorageInterface
                     ':body' => $message['body'],
                     ':created_at' => $message['createdAt'],
                     ':deleted_for_json' => $deletedForJson,
+                ]);
+            }
+
+            $typingInsert = $this->pdo->prepare(
+                'INSERT INTO typing_indicators (user_id, thread_id, recipient_id, channel, updated_at)
+                 VALUES (:user_id, :thread_id, :recipient_id, :channel, :updated_at)'
+            );
+
+            foreach ($data['typingIndicators'] as $indicator) {
+                $typingInsert->execute([
+                    ':user_id' => $indicator['userId'],
+                    ':thread_id' => $indicator['threadId'],
+                    ':recipient_id' => $indicator['recipientId'],
+                    ':channel' => $indicator['channel'],
+                    ':updated_at' => $indicator['updatedAt'],
                 ]);
             }
 
@@ -733,6 +765,18 @@ SQL);
         try_add_schema_column($pdo, "ALTER TABLE messages ADD COLUMN deleted_for_json TEXT NOT NULL DEFAULT '[]'");
 
         $pdo->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS typing_indicators (
+    user_id TEXT NOT NULL,
+    thread_id TEXT NOT NULL DEFAULT '',
+    recipient_id TEXT NOT NULL DEFAULT '',
+    channel TEXT NOT NULL DEFAULT 'message',
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, channel, thread_id, recipient_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+SQL);
+
+        $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS todos (
     id TEXT PRIMARY KEY,
     owner_id TEXT NOT NULL,
@@ -817,6 +861,20 @@ SQL);
         try_add_schema_column($pdo, 'ALTER TABLE thread_members ADD COLUMN last_read_at DATETIME NULL');
         try_add_schema_column($pdo, "ALTER TABLE messages ADD COLUMN recipient_id VARCHAR(80) NOT NULL DEFAULT ''");
         try_add_schema_column($pdo, 'ALTER TABLE messages ADD COLUMN deleted_for_json TEXT NOT NULL');
+
+        $pdo->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS typing_indicators (
+    user_id VARCHAR(80) NOT NULL,
+    thread_id VARCHAR(80) NOT NULL DEFAULT '',
+    recipient_id VARCHAR(80) NOT NULL DEFAULT '',
+    channel ENUM('message', 'chat') NOT NULL DEFAULT 'message',
+    updated_at DATETIME NOT NULL,
+    PRIMARY KEY (user_id, channel, thread_id, recipient_id),
+    INDEX idx_typing_indicators_recipient_id (recipient_id),
+    INDEX idx_typing_indicators_thread_id (thread_id),
+    CONSTRAINT fk_typing_indicators_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
 
         $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS todos (
@@ -941,5 +999,6 @@ function create_install_data(string $adminUsername, string $adminDisplayName, st
         ],
         'messageThreads' => [],
         'messages' => [],
+        'typingIndicators' => [],
     ];
 }

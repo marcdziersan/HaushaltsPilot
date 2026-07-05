@@ -340,6 +340,29 @@ function normalize_app_data(array $data): array
         $data['messages'] = [];
     }
 
+    if (!isset($data['typingIndicators']) || !is_array($data['typingIndicators'])) {
+        $data['typingIndicators'] = [];
+    }
+
+    foreach ($data['typingIndicators'] as &$indicator) {
+        if (!isset($indicator['userId']) || !is_string($indicator['userId'])) {
+            $indicator['userId'] = '';
+        }
+        if (!isset($indicator['threadId']) || !is_string($indicator['threadId'])) {
+            $indicator['threadId'] = '';
+        }
+        if (!isset($indicator['recipientId']) || !is_string($indicator['recipientId'])) {
+            $indicator['recipientId'] = '';
+        }
+        if (!isset($indicator['channel']) || !in_array($indicator['channel'], ['message', 'chat'], true)) {
+            $indicator['channel'] = 'message';
+        }
+        if (!isset($indicator['updatedAt']) || !is_string($indicator['updatedAt'])) {
+            $indicator['updatedAt'] = now_string();
+        }
+    }
+    unset($indicator);
+
     foreach ($data['todos'] as &$todo) {
         if (!isset($todo['priority']) || !in_array($todo['priority'], ALLOWED_TODO_PRIORITIES, true)) {
             $todo['priority'] = TODO_PRIORITY_NORMAL;
@@ -403,7 +426,7 @@ function is_valid_data(mixed $data): bool
 {
     if (
         !is_array($data) ||
-        !isset($data['families'], $data['users'], $data['lists'], $data['activeLists'], $data['todos'], $data['messageThreads'], $data['messages']) ||
+        !isset($data['families'], $data['users'], $data['lists'], $data['activeLists'], $data['todos'], $data['messageThreads'], $data['messages'], $data['typingIndicators']) ||
         !is_array($data['families']) ||
         !is_array($data['users']) ||
         !is_array($data['lists']) ||
@@ -411,6 +434,7 @@ function is_valid_data(mixed $data): bool
         !is_array($data['todos']) ||
         !is_array($data['messageThreads']) ||
         !is_array($data['messages']) ||
+        !is_array($data['typingIndicators']) ||
         count($data['users']) === 0
     ) {
         return false;
@@ -511,6 +535,17 @@ function is_valid_data(mixed $data): bool
             !in_array($message['threadId'], $threadIds, true) ||
             !in_array($message['senderId'], $userIds, true) ||
             ($message['recipientId'] !== '' && !in_array($message['recipientId'], $userIds, true))
+        ) {
+            return false;
+        }
+    }
+
+    foreach ($data['typingIndicators'] as $indicator) {
+        if (
+            !is_valid_typing_indicator($indicator) ||
+            !in_array($indicator['userId'], $userIds, true) ||
+            ($indicator['threadId'] !== '' && !in_array($indicator['threadId'], $threadIds, true)) ||
+            ($indicator['recipientId'] !== '' && !in_array($indicator['recipientId'], $userIds, true))
         ) {
             return false;
         }
@@ -678,6 +713,20 @@ function is_valid_message(mixed $message): bool
         is_array($message['deletedFor'])
     );
 }
+
+function is_valid_typing_indicator(mixed $indicator): bool
+{
+    return (
+        is_array($indicator) &&
+        isset($indicator['userId'], $indicator['threadId'], $indicator['recipientId'], $indicator['channel'], $indicator['updatedAt']) &&
+        is_string($indicator['userId']) &&
+        is_string($indicator['threadId']) &&
+        is_string($indicator['recipientId']) &&
+        in_array($indicator['channel'], ['message', 'chat'], true) &&
+        is_string($indicator['updatedAt'])
+    );
+}
+
 
 function public_family(array $family): array
 {

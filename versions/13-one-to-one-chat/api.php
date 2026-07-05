@@ -140,6 +140,143 @@ function messages_for_thread(array $data, string $threadId, array $user): array
     return $messages;
 }
 
+function find_thread_by_id(array $data, string $threadId): ?array
+{
+    foreach ($data['messageThreads'] as $thread) {
+        if ($thread['id'] === $threadId) {
+            return $thread;
+        }
+    }
+
+    return null;
+}
+
+function message_delivery_state(array $data, array $message, array $viewer): array
+{
+    if ($message['senderId'] !== $viewer['id']) {
+        return [
+            'state' => 'received',
+            'icon' => '',
+            'label' => '',
+        ];
+    }
+
+    $thread = find_thread_by_id($data, $message['threadId']);
+    $recipientId = $message['recipientId'];
+
+    if ($thread === null || $recipientId === '') {
+        return [
+            'state' => 'sent',
+            'icon' => '✓',
+            'label' => 'gesendet',
+        ];
+    }
+
+    $recipientReadAt = $thread['lastReadAt'][$recipientId] ?? '';
+
+    if ($recipientReadAt !== '' && $recipientReadAt >= $message['createdAt']) {
+        return [
+            'state' => 'read',
+            'icon' => '✓✓',
+            'label' => 'gelesen',
+        ];
+    }
+
+    return [
+        'state' => 'delivered',
+        'icon' => '✓',
+        'label' => 'zugestellt',
+    ];
+}
+
+function public_message_for_user(array $data, array $message, array $viewer): array
+{
+    $delivery = message_delivery_state($data, $message, $viewer);
+
+    return [
+        'id' => $message['id'],
+        'threadId' => $message['threadId'],
+        'senderId' => $message['senderId'],
+        'recipientId' => $message['recipientId'],
+        'body' => $message['body'],
+        'createdAt' => $message['createdAt'],
+        'deletedFor' => $message['deletedFor'],
+        'deliveryState' => $delivery['state'],
+        'deliveryIcon' => $delivery['icon'],
+        'deliveryLabel' => $delivery['label'],
+    ];
+}
+
+function timestamp_is_recent(string $timestamp, int $maxAgeSeconds = 12): bool
+{
+    if ($timestamp === '') {
+        return false;
+    }
+
+    $time = strtotime($timestamp);
+
+    if ($time === false) {
+        return false;
+    }
+
+    return $time >= time() - $maxAgeSeconds;
+}
+
+function prune_typing_indicators(array &$data): void
+{
+    $data['typingIndicators'] = array_values(array_filter(
+        $data['typingIndicators'] ?? [],
+        static fn(array $indicator): bool => timestamp_is_recent($indicator['updatedAt'] ?? '', 12)
+    ));
+}
+
+function visible_typing_indicators_for_user(array $data, array $user): array
+{
+    $visible = [];
+
+    foreach ($data['typingIndicators'] ?? [] as $indicator) {
+        if (($indicator['userId'] ?? '') === $user['id']) {
+            continue;
+        }
+
+        if (!timestamp_is_recent($indicator['updatedAt'] ?? '', 12)) {
+            continue;
+        }
+
+        $threadId = $indicator['threadId'] ?? '';
+        $recipientId = $indicator['recipientId'] ?? '';
+        $isVisible = false;
+
+        if ($threadId !== '') {
+            $thread = find_thread_by_id($data, $threadId);
+            $isVisible = $thread !== null && user_is_message_participant($user, $thread);
+        } elseif ($recipientId === $user['id']) {
+            $isVisible = true;
+        }
+
+        if (!$isVisible) {
+            continue;
+        }
+
+        $typingUser = find_user_by_id($data, $indicator['userId']);
+
+        if ($typingUser === null || $typingUser['active'] !== true) {
+            continue;
+        }
+
+        $visible[] = [
+            'userId' => $indicator['userId'],
+            'displayName' => $typingUser['displayName'],
+            'threadId' => $threadId,
+            'recipientId' => $recipientId,
+            'channel' => $indicator['channel'],
+            'updatedAt' => $indicator['updatedAt'],
+        ];
+    }
+
+    return $visible;
+}
+
 function message_thread_unread_count(array $data, array $thread, array $user): int
 {
     if (!user_is_message_participant($user, $thread)) {
@@ -283,10 +420,11 @@ function prepare_response_data(array $data, array $user): array
         'adminTodos' => is_admin($user) ? $data['todos'] : [],
         'messageThreads' => $publicThreads,
         'chatThreads' => $publicChatThreads,
-        'messages' => visible_messages_for_user($data, $user),
+        'messages' => array_map(static fn(array $message): array => public_message_for_user($data, $message, $user), visible_messages_for_user($data, $user)),
+        'typingIndicators' => visible_typing_indicators_for_user($data, $user),
         'totalUnreadMessages' => $totalUnreadMessages,
         'totalUnreadChats' => $totalUnreadChats,
-        'adminMessages' => is_admin($user) ? visible_messages_for_user($data, $user, 'message') : [],
+        'adminMessages' => is_admin($user) ? array_map(static fn(array $message): array => public_message_for_user($data, $message, $user), visible_messages_for_user($data, $user, 'message')) : [],
         'users' => public_users($data),
         'activeUsers' => active_public_users($data),
         'families' => public_families($data),
@@ -416,6 +554,7 @@ function normalize_todo_for_scope(array $actor, string $scope, string $title, st
 }
 
 $data = load_app_data($storageAdapter);
+prune_typing_indicators($data);
 $currentUser = get_current_user_or_fail($data);
 
 if ($action === 'load') {
@@ -794,6 +933,71 @@ switch ($action) {
 
         save_and_send($storageAdapter, $data, $currentUser, 'Aufgabe wurde gelöscht.');
 
+    case 'set_typing':
+        $channel = clean_text($input['channel'] ?? '', 20);
+        $threadId = clean_optional_id($input['threadId'] ?? '');
+        $recipientId = clean_optional_id($input['recipientId'] ?? '');
+        $isTyping = clean_bool($input['isTyping'] ?? true);
+
+        if (!in_array($channel, ['message', 'chat'], true)) {
+            send_json(['success' => false, 'message' => 'Ungültiger Kommunikationskanal.'], 400);
+        }
+
+        if ($threadId !== '') {
+            $threadIndex = find_message_thread_index($data, $threadId);
+
+            if ($threadIndex === null || !user_can_view_message_thread($currentUser, $data['messageThreads'][$threadIndex])) {
+                send_json(['success' => false, 'message' => 'Dieser Verlauf wurde nicht gefunden oder ist nicht freigegeben.'], 404);
+            }
+
+            $thread = $data['messageThreads'][$threadIndex];
+            $expectedThreadType = $channel === 'chat' ? MESSAGE_THREAD_CHAT : MESSAGE_THREAD_PERSONAL;
+
+            if ($thread['threadType'] !== $expectedThreadType && !($channel === 'message' && $thread['threadType'] === MESSAGE_THREAD_LEGACY_DIRECT)) {
+                send_json(['success' => false, 'message' => 'Der Verlauf passt nicht zum gewählten Kommunikationskanal.'], 400);
+            }
+
+            $otherParticipantIds = array_values(array_filter(
+                $thread['participantIds'],
+                static fn(string $participantId): bool => $participantId !== $currentUser['id']
+            ));
+            $recipientId = $otherParticipantIds[0] ?? $recipientId;
+        }
+
+        if ($recipientId === '' || $recipientId === $currentUser['id']) {
+            send_json(['success' => false, 'message' => 'Kein gültiger Empfänger angegeben.'], 400);
+        }
+
+        $recipient = find_user_by_id($data, $recipientId);
+
+        if ($recipient === null || $recipient['active'] !== true) {
+            send_json(['success' => false, 'message' => 'Der Empfänger wurde nicht gefunden oder ist deaktiviert.'], 404);
+        }
+
+        $data['typingIndicators'] = array_values(array_filter(
+            $data['typingIndicators'] ?? [],
+            function (array $indicator) use ($currentUser, $threadId, $recipientId, $channel): bool {
+                return !(
+                    $indicator['userId'] === $currentUser['id'] &&
+                    $indicator['threadId'] === $threadId &&
+                    $indicator['recipientId'] === $recipientId &&
+                    $indicator['channel'] === $channel
+                );
+            }
+        ));
+
+        if ($isTyping) {
+            $data['typingIndicators'][] = [
+                'userId' => $currentUser['id'],
+                'threadId' => $threadId,
+                'recipientId' => $recipientId,
+                'channel' => $channel,
+                'updatedAt' => now_string(),
+            ];
+        }
+
+        save_and_send($storageAdapter, $data, $currentUser, 'Tippstatus wurde aktualisiert.');
+
     case 'send_chat_message':
     case 'send_message':
         $isChatAction = $action === 'send_chat_message';
@@ -839,6 +1043,18 @@ switch ($action) {
         if (!isset($data['messageThreads'][$threadIndex]['lastReadAt'][$recipientId])) {
             $data['messageThreads'][$threadIndex]['lastReadAt'][$recipientId] = '';
         }
+
+        $data['typingIndicators'] = array_values(array_filter(
+            $data['typingIndicators'] ?? [],
+            function (array $indicator) use ($currentUser, $threadId, $recipientId, $isChatAction): bool {
+                return !(
+                    $indicator['userId'] === $currentUser['id'] &&
+                    $indicator['threadId'] === $threadId &&
+                    $indicator['recipientId'] === $recipientId &&
+                    $indicator['channel'] === ($isChatAction ? 'chat' : 'message')
+                );
+            }
+        ));
 
         $data['messages'][] = [
             'id' => create_id('msg'),
