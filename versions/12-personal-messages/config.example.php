@@ -2,9 +2,11 @@
 declare(strict_types=1);
 
 return [
-    'installed' => true,
-    'storage' => 'mysql',
-    'app_key' => '685ab32388651ca65d80dc8fc6aa039e472a482d20f3f36609ced7c2101d557d',
+    // Der Installer erzeugt die echte config.php automatisch.
+    // Diese Datei dient nur als Vorlage für öffentliche Repositories.
+    'installed' => false,
+    'storage' => 'json',
+    'app_key' => 'CHANGE_ME_GENERATE_WITH_INSTALLER',
     'allow_registration' => true,
     'json_file' => __DIR__ . '/data/lists.json',
     'sqlite_file' => __DIR__ . '/data/app.sqlite',

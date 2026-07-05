@@ -11,7 +11,7 @@ Teil 11 ergänzt HaushaltsPilot um ein vertieftes Aufgabenmodul. Neben Einkaufs-
 **Aktueller Teil:** Teil 11 – Todos  
 **Quelltext zu diesem Teil:** [versions/11-todos](../versions/11-todos/)
 
-[← Teil 10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [README / Übersicht](../README.md) | [Teil 12 – Personal Messages →](#ausblick-auf-den-naechsten-teil)
+[← Teil 10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [README / Übersicht](../README.md) | [Teil 12 – Personal Messages →](teil-12-personal-messages.md)
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
@@ -416,4 +416,4 @@ Für die Tutorialreihe ist der aktuelle Umfang bewusst richtig: Das Modul ist vo
 
 ## Navigation
 
-[← Teil 10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [README / Übersicht](../README.md) | [Teil 12 – Personal Messages →](#ausblick-auf-den-naechsten-teil)
+[← Teil 10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [README / Übersicht](../README.md) | [Teil 12 – Personal Messages →](teil-12-personal-messages.md)
