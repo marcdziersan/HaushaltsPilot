@@ -174,12 +174,19 @@ final class PdoStorage implements AppStorageInterface
         }
 
         $todoRows = $this->pdo
-            ->query('SELECT id, owner_id, family_id, scope, title, status, due_at, created_at FROM todos ORDER BY status ASC, due_at ASC, created_at DESC')
+            ->query('SELECT id, owner_id, family_id, scope, title, status, priority, assigned_to, due_at, reminder_at, calendar_date, comments_json, created_at, updated_at FROM todos ORDER BY status ASC, priority DESC, due_at ASC, created_at DESC')
             ->fetchAll();
 
         $todos = [];
 
         foreach ($todoRows as $todoRow) {
+            $commentsJson = (string) ($todoRow['comments_json'] ?? '[]');
+            $comments = json_decode($commentsJson, true);
+
+            if (!is_array($comments)) {
+                $comments = [];
+            }
+
             $todos[] = [
                 'id' => (string) $todoRow['id'],
                 'ownerId' => (string) $todoRow['owner_id'],
@@ -187,8 +194,14 @@ final class PdoStorage implements AppStorageInterface
                 'scope' => (string) $todoRow['scope'],
                 'title' => (string) $todoRow['title'],
                 'status' => (string) $todoRow['status'],
+                'priority' => (string) ($todoRow['priority'] ?? TODO_PRIORITY_NORMAL),
+                'assignedTo' => (string) ($todoRow['assigned_to'] ?? ''),
                 'dueAt' => (string) ($todoRow['due_at'] ?? ''),
+                'reminderAt' => (string) ($todoRow['reminder_at'] ?? ''),
+                'calendarDate' => (string) ($todoRow['calendar_date'] ?? ''),
+                'comments' => $comments,
                 'createdAt' => (string) $todoRow['created_at'],
+                'updatedAt' => (string) ($todoRow['updated_at'] ?? $todoRow['created_at']),
             ];
         }
 
@@ -310,11 +323,17 @@ final class PdoStorage implements AppStorageInterface
             }
 
             $todoInsert = $this->pdo->prepare(
-                'INSERT INTO todos (id, owner_id, family_id, scope, title, status, due_at, created_at)
-                 VALUES (:id, :owner_id, :family_id, :scope, :title, :status, :due_at, :created_at)'
+                'INSERT INTO todos (id, owner_id, family_id, scope, title, status, priority, assigned_to, due_at, reminder_at, calendar_date, comments_json, created_at, updated_at)
+                 VALUES (:id, :owner_id, :family_id, :scope, :title, :status, :priority, :assigned_to, :due_at, :reminder_at, :calendar_date, :comments_json, :created_at, :updated_at)'
             );
 
             foreach ($data['todos'] as $todo) {
+                $commentsJson = json_encode($todo['comments'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                if ($commentsJson === false) {
+                    $commentsJson = '[]';
+                }
+
                 $todoInsert->execute([
                     ':id' => $todo['id'],
                     ':owner_id' => $todo['ownerId'],
@@ -322,8 +341,14 @@ final class PdoStorage implements AppStorageInterface
                     ':scope' => $todo['scope'],
                     ':title' => $todo['title'],
                     ':status' => $todo['status'],
+                    ':priority' => $todo['priority'],
+                    ':assigned_to' => $todo['assignedTo'],
                     ':due_at' => $todo['dueAt'] !== '' ? $todo['dueAt'] : null,
+                    ':reminder_at' => $todo['reminderAt'] !== '' ? $todo['reminderAt'] : null,
+                    ':calendar_date' => $todo['calendarDate'] !== '' ? $todo['calendarDate'] : null,
+                    ':comments_json' => $commentsJson,
                     ':created_at' => $todo['createdAt'],
+                    ':updated_at' => $todo['updatedAt'],
                 ]);
             }
 
@@ -546,6 +571,15 @@ function install_storage_schema(PDO $pdo, string $driver): void
     throw new RuntimeException('Unbekannter Datenbank-Treiber.');
 }
 
+function try_add_schema_column(PDO $pdo, string $sql): void
+{
+    try {
+        $pdo->exec($sql);
+    } catch (Throwable $exception) {
+        // Spalte existiert bereits oder der Treiber meldet einen harmlosen Migrationskonflikt.
+    }
+}
+
 function install_future_schema(PDO $pdo, string $driver): void
 {
     if ($driver === 'sqlite') {
@@ -583,19 +617,25 @@ function install_future_schema(PDO $pdo, string $driver): void
             )'
         );
 
-        $pdo->exec(
-            'CREATE TABLE IF NOT EXISTS todos (
-                id TEXT PRIMARY KEY,
-                owner_id TEXT NOT NULL,
-                family_id TEXT NOT NULL DEFAULT \'\',
-                scope TEXT NOT NULL DEFAULT \'private\',
-                title TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT \'open\',
-                due_at TEXT NULL,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
-            )'
-        );
+        $pdo->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS todos (
+    id TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    family_id TEXT NOT NULL DEFAULT '',
+    scope TEXT NOT NULL DEFAULT 'private',
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open',
+    priority TEXT NOT NULL DEFAULT 'normal',
+    assigned_to TEXT NOT NULL DEFAULT '',
+    due_at TEXT NULL,
+    reminder_at TEXT NULL,
+    calendar_date TEXT NULL,
+    comments_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+)
+SQL);
 
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS calendar_events (
@@ -653,22 +693,30 @@ function install_future_schema(PDO $pdo, string $driver): void
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
         );
 
-        $pdo->exec(
-            'CREATE TABLE IF NOT EXISTS todos (
-                id VARCHAR(80) NOT NULL PRIMARY KEY,
-                owner_id VARCHAR(80) NOT NULL,
-                family_id VARCHAR(80) NOT NULL DEFAULT \'\',
-                scope ENUM(\'private\', \'family\') NOT NULL DEFAULT \'private\',
-                title VARCHAR(180) NOT NULL,
-                status ENUM(\'open\', \'done\') NOT NULL DEFAULT \'open\',
-                due_at DATETIME NULL,
-                created_at DATETIME NOT NULL,
-                INDEX idx_todos_owner_id (owner_id),
-                INDEX idx_todos_family_id (family_id),
-                INDEX idx_todos_scope (scope),
-                CONSTRAINT fk_todos_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
-        );
+        $pdo->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS todos (
+    id VARCHAR(80) NOT NULL PRIMARY KEY,
+    owner_id VARCHAR(80) NOT NULL,
+    family_id VARCHAR(80) NOT NULL DEFAULT '',
+    scope ENUM('private', 'family') NOT NULL DEFAULT 'private',
+    title VARCHAR(180) NOT NULL,
+    status ENUM('open', 'done') NOT NULL DEFAULT 'open',
+    priority ENUM('low', 'normal', 'high', 'urgent') NOT NULL DEFAULT 'normal',
+    assigned_to VARCHAR(80) NOT NULL DEFAULT '',
+    due_at DATETIME NULL,
+    reminder_at DATETIME NULL,
+    calendar_date DATETIME NULL,
+    comments_json TEXT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_todos_owner_id (owner_id),
+    INDEX idx_todos_assigned_to (assigned_to),
+    INDEX idx_todos_priority (priority),
+    INDEX idx_todos_family_id (family_id),
+    INDEX idx_todos_scope (scope),
+    CONSTRAINT fk_todos_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
 
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS calendar_events (
@@ -740,8 +788,14 @@ function create_install_data(string $adminUsername, string $adminDisplayName, st
                 'scope' => TODO_SCOPE_PRIVATE,
                 'title' => 'Teil 11 testen: persönliche Aufgabe abhaken',
                 'status' => TODO_STATUS_OPEN,
+                'priority' => TODO_PRIORITY_NORMAL,
+                'assignedTo' => $adminId,
                 'dueAt' => '',
+                'reminderAt' => '',
+                'calendarDate' => '',
+                'comments' => [],
                 'createdAt' => $now,
+                'updatedAt' => $now,
             ],
             [
                 'id' => create_id('todo'),
@@ -750,8 +804,14 @@ function create_install_data(string $adminUsername, string $adminDisplayName, st
                 'scope' => TODO_SCOPE_FAMILY,
                 'title' => 'Familienaufgabe anlegen und gemeinsam erledigen',
                 'status' => TODO_STATUS_OPEN,
+                'priority' => TODO_PRIORITY_NORMAL,
+                'assignedTo' => $adminId,
                 'dueAt' => '',
+                'reminderAt' => '',
+                'calendarDate' => '',
+                'comments' => [],
                 'createdAt' => $now,
+                'updatedAt' => $now,
             ],
         ],
     ];

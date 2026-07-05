@@ -2,7 +2,7 @@
 
 **HaushaltsPilot** ist eine fortlaufende Lern- und Tutorialreihe, die aus einer einfachen Einkaufsliste Schritt für Schritt eine vollständige Haushalts- und Familienanwendung entwickelt.
 
-Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und ab Teil 11 persönliche sowie gemeinsame Todos.
+Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und ab Teil 11 vertiefte persönliche sowie gemeinsame Todos.
 
 Der didaktische Kern lautet:
 
@@ -40,7 +40,7 @@ Die Reihe ist bis Teil 11 ausgearbeitet. Jede Dokumentation ist mit dem passende
 | 08 | [Persönliche und gemeinsame Listen](docs/teil-08-persoenliche-und-gemeinsame-listen.md) | [versions/08-personal-shared-lists](versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | [Familien und Haushalte](docs/teil-09-familien-und-haushalte.md) | [versions/09-families-households](versions/09-families-households/) | Haushaltszuordnung für Nutzer |
 | 10 | [Gemeinschaftslisten und Admin-Tabs](docs/teil-10-gemeinschaftslisten-und-admin-tabs.md) | [versions/10-shared-lists-admin-tabs](versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
-| 11 | [Todos](docs/teil-11-todos.md) | [versions/11-todos](versions/11-todos/) | persönliche und gemeinsame Aufgaben |
+| 11 | [Todos](docs/teil-11-todos.md) | [versions/11-todos](versions/11-todos/) | vertiefte persönliche und gemeinsame Aufgaben |
 
 ## Geplante Fortsetzung
 

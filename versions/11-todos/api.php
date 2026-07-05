@@ -150,10 +150,81 @@ function update_owned_todos_family(array &$data, string $ownerId, string $family
 
             if ($familyId === '' && $todo['scope'] === TODO_SCOPE_FAMILY) {
                 $todo['scope'] = TODO_SCOPE_PRIVATE;
+                $todo['assignedTo'] = $ownerId;
             }
+        }
+
+        if (($todo['assignedTo'] ?? '') === $ownerId && $familyId === '' && $todo['scope'] === TODO_SCOPE_FAMILY) {
+            $todo['assignedTo'] = '';
         }
     }
     unset($todo);
+}
+
+function clean_todo_comment_body(mixed $value): string
+{
+    $body = clean_text($value, MAX_TODO_COMMENT_LENGTH);
+    require_non_empty($body, 'Bitte gib einen Kommentar ein.');
+    return $body;
+}
+
+function validate_todo_assignment(array $data, array $todo, string $assignedTo): string
+{
+    if ($assignedTo === '') {
+        return '';
+    }
+
+    $assignee = find_user_by_id($data, $assignedTo);
+
+    if ($assignee === null || $assignee['active'] !== true) {
+        send_json(['success' => false, 'message' => 'Die zugewiesene Person wurde nicht gefunden oder ist deaktiviert.'], 404);
+    }
+
+    if ($todo['scope'] === TODO_SCOPE_PRIVATE && $assignedTo !== $todo['ownerId']) {
+        send_json(['success' => false, 'message' => 'Private Aufgaben können nur dem Besitzer der Aufgabe zugewiesen werden.'], 400);
+    }
+
+    if ($todo['scope'] === TODO_SCOPE_FAMILY) {
+        if ($todo['familyId'] === '') {
+            send_json(['success' => false, 'message' => 'Familienaufgaben benötigen einen Haushalt.'], 400);
+        }
+
+        if ($assignee['familyId'] !== $todo['familyId']) {
+            send_json(['success' => false, 'message' => 'Familienaufgaben können nur Haushaltsmitgliedern zugewiesen werden.'], 400);
+        }
+    }
+
+    return $assignedTo;
+}
+
+function normalize_todo_for_scope(array $actor, string $scope, string $title, string $priority, string $assignedTo, string $dueAt, string $reminderAt, string $calendarDate): array
+{
+    if ($scope === TODO_SCOPE_FAMILY && $actor['familyId'] === '') {
+        send_json(['success' => false, 'message' => 'Familienaufgaben benötigen einen Haushalt. Weise dich zuerst einem Haushalt zu.'], 400);
+    }
+
+    if ($scope === TODO_SCOPE_PRIVATE && $assignedTo === '') {
+        $assignedTo = $actor['id'];
+    }
+
+    $todo = [
+        'id' => create_id('todo'),
+        'ownerId' => $actor['id'],
+        'familyId' => $actor['familyId'],
+        'scope' => $scope,
+        'title' => $title,
+        'status' => TODO_STATUS_OPEN,
+        'priority' => $priority,
+        'assignedTo' => $assignedTo,
+        'dueAt' => $dueAt,
+        'reminderAt' => $reminderAt,
+        'calendarDate' => $calendarDate,
+        'comments' => [],
+        'createdAt' => now_string(),
+        'updatedAt' => now_string(),
+    ];
+
+    return $todo;
 }
 
 $data = load_app_data($storageAdapter);
@@ -396,25 +467,66 @@ switch ($action) {
     case 'create_todo':
         $title = clean_text($input['title'] ?? '', MAX_TODO_TITLE_LENGTH);
         $scope = clean_todo_scope($input['scope'] ?? TODO_SCOPE_PRIVATE);
+        $priority = clean_todo_priority($input['priority'] ?? TODO_PRIORITY_NORMAL);
+        $assignedTo = clean_optional_id($input['assignedTo'] ?? '');
         $dueAt = clean_due_date($input['dueAt'] ?? '');
+        $reminderAt = clean_due_date($input['reminderAt'] ?? '');
+        $calendarDate = clean_due_date($input['calendarDate'] ?? '');
         require_non_empty($title, 'Bitte gib eine Aufgabe ein.');
 
-        if ($scope === TODO_SCOPE_FAMILY && $currentUser['familyId'] === '') {
-            send_json(['success' => false, 'message' => 'Familienaufgaben benötigen einen Haushalt. Weise dich zuerst einem Haushalt zu.'], 400);
-        }
+        $newTodo = normalize_todo_for_scope($currentUser, $scope, $title, $priority, $assignedTo, $dueAt, $reminderAt, $calendarDate);
+        $newTodo['assignedTo'] = validate_todo_assignment($data, $newTodo, $assignedTo);
 
-        $data['todos'][] = [
-            'id' => create_id('todo'),
-            'ownerId' => $currentUser['id'],
-            'familyId' => $scope === TODO_SCOPE_FAMILY ? $currentUser['familyId'] : $currentUser['familyId'],
-            'scope' => $scope,
-            'title' => $title,
-            'status' => TODO_STATUS_OPEN,
-            'dueAt' => $dueAt,
-            'createdAt' => now_string(),
-        ];
+        $data['todos'][] = $newTodo;
 
         save_and_send($storageAdapter, $data, $currentUser, 'Aufgabe wurde erstellt.');
+
+    case 'update_todo':
+        $todoId = clean_text($input['todoId'] ?? '', 80);
+        require_non_empty($todoId, 'Keine Aufgabe angegeben.');
+
+        $todoIndex = find_todo_index($data, $todoId);
+
+        if ($todoIndex === null || !user_can_manage_todo($currentUser, $data['todos'][$todoIndex])) {
+            send_json(['success' => false, 'message' => 'Du darfst diese Aufgabe nicht bearbeiten.'], 403);
+        }
+
+        $title = clean_text($input['title'] ?? $data['todos'][$todoIndex]['title'], MAX_TODO_TITLE_LENGTH);
+        $scope = clean_todo_scope($input['scope'] ?? $data['todos'][$todoIndex]['scope']);
+        $priority = clean_todo_priority($input['priority'] ?? $data['todos'][$todoIndex]['priority']);
+        $assignedTo = clean_optional_id($input['assignedTo'] ?? $data['todos'][$todoIndex]['assignedTo']);
+        $dueAt = clean_due_date($input['dueAt'] ?? $data['todos'][$todoIndex]['dueAt']);
+        $reminderAt = clean_due_date($input['reminderAt'] ?? $data['todos'][$todoIndex]['reminderAt']);
+        $calendarDate = clean_due_date($input['calendarDate'] ?? $data['todos'][$todoIndex]['calendarDate']);
+        require_non_empty($title, 'Bitte gib eine Aufgabe ein.');
+
+        $data['todos'][$todoIndex]['title'] = $title;
+        $data['todos'][$todoIndex]['scope'] = $scope;
+        $data['todos'][$todoIndex]['priority'] = $priority;
+        $data['todos'][$todoIndex]['dueAt'] = $dueAt;
+        $data['todos'][$todoIndex]['reminderAt'] = $reminderAt;
+        $data['todos'][$todoIndex]['calendarDate'] = $calendarDate;
+
+        if ($scope === TODO_SCOPE_PRIVATE) {
+            $data['todos'][$todoIndex]['familyId'] = $data['todos'][$todoIndex]['ownerId'] === $currentUser['id'] ? $currentUser['familyId'] : $data['todos'][$todoIndex]['familyId'];
+            if ($assignedTo === '') {
+                $assignedTo = $data['todos'][$todoIndex]['ownerId'];
+            }
+        }
+
+        if ($scope === TODO_SCOPE_FAMILY) {
+            if ($currentUser['familyId'] === '' && !is_admin($currentUser)) {
+                send_json(['success' => false, 'message' => 'Familienaufgaben benötigen einen Haushalt.'], 400);
+            }
+            if ($data['todos'][$todoIndex]['familyId'] === '') {
+                $data['todos'][$todoIndex]['familyId'] = $currentUser['familyId'];
+            }
+        }
+
+        $data['todos'][$todoIndex]['assignedTo'] = validate_todo_assignment($data, $data['todos'][$todoIndex], $assignedTo);
+        $data['todos'][$todoIndex]['updatedAt'] = now_string();
+
+        save_and_send($storageAdapter, $data, $currentUser, 'Aufgabe wurde aktualisiert.');
 
     case 'toggle_todo':
         $todoId = clean_text($input['todoId'] ?? '', 80);
@@ -427,8 +539,58 @@ switch ($action) {
         }
 
         $data['todos'][$todoIndex]['status'] = $data['todos'][$todoIndex]['status'] === TODO_STATUS_DONE ? TODO_STATUS_OPEN : TODO_STATUS_DONE;
+        $data['todos'][$todoIndex]['updatedAt'] = now_string();
 
         save_and_send($storageAdapter, $data, $currentUser, 'Aufgabenstatus wurde geändert.');
+
+    case 'add_todo_comment':
+        $todoId = clean_text($input['todoId'] ?? '', 80);
+        $body = clean_todo_comment_body($input['body'] ?? '');
+        require_non_empty($todoId, 'Keine Aufgabe angegeben.');
+
+        $todoIndex = find_todo_index($data, $todoId);
+
+        if ($todoIndex === null || !user_can_view_todo($currentUser, $data['todos'][$todoIndex])) {
+            send_json(['success' => false, 'message' => 'Du darfst diese Aufgabe nicht kommentieren.'], 403);
+        }
+
+        $data['todos'][$todoIndex]['comments'][] = [
+            'id' => create_id('comment'),
+            'authorId' => $currentUser['id'],
+            'body' => $body,
+            'createdAt' => now_string(),
+        ];
+        $data['todos'][$todoIndex]['updatedAt'] = now_string();
+
+        save_and_send($storageAdapter, $data, $currentUser, 'Kommentar wurde gespeichert.');
+
+    case 'delete_todo_comment':
+        $todoId = clean_text($input['todoId'] ?? '', 80);
+        $commentId = clean_text($input['commentId'] ?? '', 80);
+        require_non_empty($todoId, 'Keine Aufgabe angegeben.');
+        require_non_empty($commentId, 'Kein Kommentar angegeben.');
+
+        $todoIndex = find_todo_index($data, $todoId);
+
+        if ($todoIndex === null || !user_can_view_todo($currentUser, $data['todos'][$todoIndex])) {
+            send_json(['success' => false, 'message' => 'Du darfst diese Aufgabe nicht bearbeiten.'], 403);
+        }
+
+        $commentIndex = find_todo_comment_index($data['todos'][$todoIndex], $commentId);
+
+        if ($commentIndex === null) {
+            send_json(['success' => false, 'message' => 'Kommentar wurde nicht gefunden.'], 404);
+        }
+
+        $comment = $data['todos'][$todoIndex]['comments'][$commentIndex];
+        if (!is_admin($currentUser) && $comment['authorId'] !== $currentUser['id'] && $data['todos'][$todoIndex]['ownerId'] !== $currentUser['id']) {
+            send_json(['success' => false, 'message' => 'Du darfst diesen Kommentar nicht löschen.'], 403);
+        }
+
+        array_splice($data['todos'][$todoIndex]['comments'], $commentIndex, 1);
+        $data['todos'][$todoIndex]['updatedAt'] = now_string();
+
+        save_and_send($storageAdapter, $data, $currentUser, 'Kommentar wurde gelöscht.');
 
     case 'delete_todo':
         $todoId = clean_text($input['todoId'] ?? '', 80);
@@ -525,6 +687,8 @@ switch ($action) {
                 $todo['familyId'] = '';
                 if ($todo['scope'] === TODO_SCOPE_FAMILY) {
                     $todo['scope'] = TODO_SCOPE_PRIVATE;
+                    $todo['assignedTo'] = $todo['ownerId'];
+                    $todo['updatedAt'] = now_string();
                 }
             }
         }
@@ -642,6 +806,17 @@ switch ($action) {
         $data['todos'] = array_values(array_filter($data['todos'], function (array $todo) use ($userId): bool {
             return $todo['ownerId'] !== $userId;
         }));
+
+        foreach ($data['todos'] as &$todo) {
+            if (($todo['assignedTo'] ?? '') === $userId) {
+                $todo['assignedTo'] = '';
+                $todo['updatedAt'] = now_string();
+            }
+            $todo['comments'] = array_values(array_filter($todo['comments'], function (array $comment) use ($userId): bool {
+                return $comment['authorId'] !== $userId;
+            }));
+        }
+        unset($todo);
 
         if (count($data['lists']) === 0) {
             $listId = create_id('list');

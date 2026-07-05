@@ -1,6 +1,6 @@
 # Teil 11 – Todos
 
-Teil 11 ergänzt HaushaltsPilot um ein eigenständiges Aufgabenmodul. Neben Einkaufs- und Haushaltslisten gibt es jetzt persönliche Todos und gemeinsame Familienaufgaben.
+Teil 11 ergänzt HaushaltsPilot um ein vertieftes Aufgabenmodul. Neben Einkaufs- und Haushaltslisten gibt es jetzt persönliche Todos und gemeinsame Familienaufgaben mit Bearbeitung, Priorität, Zuständigkeit, Kommentaren, Fälligkeit, Erinnerung und Kalenderbezug.
 
 > **Rolle in der Reihe:** Nach Benutzern, Rollen, Haushalten und Gemeinschaftslisten entsteht das nächste echte Hauptmodul. Aufgaben werden nicht in Einkaufslisten versteckt, sondern als eigene fachliche Einheit modelliert.
 
@@ -25,7 +25,7 @@ Teil 11 ergänzt HaushaltsPilot um ein eigenständiges Aufgabenmodul. Neben Eink
 | 08 | [08 – Persönliche und gemeinsame Listen](teil-08-persoenliche-und-gemeinsame-listen.md) | [Version 08](../versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | [09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [Version 09](../versions/09-families-households/) | Haushaltszuordnung für Nutzer |
 | 10 | [10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [Version 10](../versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
-| 11 | **[11 – Todos](teil-11-todos.md)** | **[Version 11](../versions/11-todos/)** | persönliche und gemeinsame Aufgaben |
+| 11 | **[11 – Todos](teil-11-todos.md)** | **[Version 11](../versions/11-todos/)** | vertiefte persönliche und gemeinsame Aufgaben |
 
 <!-- tutorial-nav:end -->
 
@@ -38,9 +38,16 @@ Am Ende dieses Teils kann die Anwendung:
 - persönliche Aufgaben erstellen
 - Familienaufgaben erstellen
 - Aufgaben nach privat und Haushalt trennen
+- Aufgaben nachträglich bearbeiten und umbenennen
+- Prioritäten vergeben: niedrig, normal, hoch und dringend
+- Aufgaben einzelnen Familienmitgliedern zuweisen
 - Aufgaben als offen oder erledigt markieren
+- Aufgaben kommentieren
+- Fälligkeitsdaten speichern
+- Erinnerungsdatum speichern
+- Kalenderdatum als spätere Kalenderverknüpfung vormerken
+- automatische Todo-Zusammenfassung im Aufgabenbereich anzeigen
 - Aufgaben löschen
-- optionale Fälligkeitsdaten speichern
 - Aufgaben im JSON-, SQLite- und MySQL-Speicher berücksichtigen
 - Admins eine Todo-Übersicht anzeigen
 - Haushaltsgrenzen auch für Aufgaben einhalten
@@ -110,7 +117,7 @@ Eine Aufgabe hat in dieser Version bewusst nur zwei Zustände:
 | `open` | Aufgabe ist offen |
 | `done` | Aufgabe ist erledigt |
 
-Diese Entscheidung hält Teil 11 überschaubar. Komplexere Zustände wie „in Bearbeitung“, „wartet“ oder „verschoben“ können später ergänzt werden.
+Dafür wird die fachliche Tiefe erhöht: Aufgaben haben jetzt Priorität, Zuständigkeit, Kommentare, Fälligkeit, Erinnerung und ein Kalenderdatum. Komplexere Status wie „in Bearbeitung“, „wartet“ oder „verschoben“ bleiben bewusst späteren Versionen vorbehalten, damit der Zustandsautomat noch einfach bleibt.
 
 ---
 
@@ -145,8 +152,14 @@ Neu ist das Datenfeld `todos` auf oberster Anwendungsebene.
     scope: "family",
     title: "Mülltonnen rausstellen",
     status: "open",
+    priority: "high",
+    assignedTo: "user_456",
     dueAt: "2026-07-10",
-    createdAt: "2026-07-04 23:30:00"
+    reminderAt: "2026-07-09",
+    calendarDate: "2026-07-10",
+    comments: [],
+    createdAt: "2026-07-04 23:30:00",
+    updatedAt: "2026-07-04 23:30:00"
 }
 ```
 
@@ -159,8 +172,14 @@ Wichtige Felder:
 | `scope` | `private` oder `family` |
 | `title` | Aufgabentext |
 | `status` | `open` oder `done` |
+| `priority` | `low`, `normal`, `high` oder `urgent` |
+| `assignedTo` | optional zugewiesener Benutzer |
 | `dueAt` | optionales Fälligkeitsdatum |
+| `reminderAt` | optionales Erinnerungsdatum |
+| `calendarDate` | optionales Kalenderdatum für spätere Kalenderintegration |
+| `comments` | Kommentarobjekte mit Autor, Text und Zeitpunkt |
 | `createdAt` | Erstellzeitpunkt |
+| `updatedAt` | Zeitpunkt der letzten Änderung |
 
 ---
 
@@ -180,8 +199,20 @@ Erwartete Daten:
 {
   "title": "Müll rausbringen",
   "scope": "family",
-  "dueAt": "2026-07-10"
+  "priority": "high",
+  "assignedTo": "user_456",
+  "dueAt": "2026-07-10",
+  "reminderAt": "2026-07-09",
+  "calendarDate": "2026-07-10"
 }
+```
+
+### `update_todo`
+
+Bearbeitet eine vorhandene Aufgabe. Dadurch können Titel, Bereich, Priorität, Zuständigkeit, Fälligkeit, Erinnerung und Kalenderbezug nachträglich geändert werden.
+
+```txt
+POST api.php?action=update_todo
 ```
 
 ### `toggle_todo`
@@ -190,6 +221,22 @@ Wechselt den Status zwischen offen und erledigt.
 
 ```txt
 POST api.php?action=toggle_todo
+```
+
+### `add_todo_comment`
+
+Fügt einer sichtbaren Aufgabe einen Kommentar hinzu.
+
+```txt
+POST api.php?action=add_todo_comment
+```
+
+### `delete_todo_comment`
+
+Löscht einen Kommentar, wenn der aktuelle Nutzer dazu berechtigt ist. Admins, Aufgabenbesitzer und Kommentarautoren dürfen Kommentare löschen.
+
+```txt
+POST api.php?action=delete_todo_comment
 ```
 
 ### `delete_todo`
@@ -212,7 +259,7 @@ Eine scheinbar einfachere Lösung wäre gewesen, Aufgaben als normale Listeneint
 - Aufgaben brauchen keine Einkaufskategorie.
 - Aufgaben haben eine andere Sichtbarkeit.
 - Aufgaben sollen später mit Nachrichten, Kalender und Dashboard verbunden werden.
-- Aufgaben können später Zuweisungen, Prioritäten oder Kommentare bekommen.
+- Aufgaben brauchen eigene Felder für Zuweisung, Priorität, Kommentare, Erinnerung und Kalenderbezug.
 
 Deshalb ist ein eigenes `todos`-Array beziehungsweise eine eigene `todos`-Tabelle die sauberere Grundlage.
 
@@ -225,8 +272,8 @@ Deshalb ist ein eigenes `todos`-Array beziehungsweise eine eigene `todos`-Tabell
 - klares neues Hauptmodul
 - private und gemeinsame Aufgaben sauber getrennt
 - Haushaltsgrenzen bleiben verständlich
-- Aufgaben können später im Dashboard auftauchen
-- gute Vorbereitung für Kalender und Nachrichten
+- Aufgaben besitzen bereits eine eigene Zusammenfassung im Todo-Bereich
+- gute Vorbereitung für Kalender, Nachrichten und späteres Gesamtdashboard
 - JSON, SQLite und MySQL bleiben weiterhin nutzbar
 
 ### Nachteile
@@ -234,11 +281,13 @@ Deshalb ist ein eigenes `todos`-Array beziehungsweise eine eigene `todos`-Tabell
 - zusätzliche Datenstruktur erhöht die Komplexität
 - Validierung muss erweitert werden
 - alle Speicherarten müssen Todos laden und speichern können
-- UI wird voller
-- noch keine Bearbeiten-Funktion für bestehende Aufgaben
-- noch keine Zuweisung an einzelne Familienmitglieder
+- UI wird deutlich voller
+- Todo-Modul ist jetzt fachlich anspruchsvoller als die ursprüngliche Einstiegsversion
+- Kommentare werden in dieser Stufe noch direkt am Todo gespeichert und nicht als eigene normalisierte Tabelle geführt
+- Kalenderbezug ist ein Datumsfeld und noch kein vollständiges Kalendermodul
+- Erinnerungen sind sichtbare Erinnerungshinweise, aber noch keine echten Push- oder E-Mail-Benachrichtigungen
 
-Diese Nachteile sind bewusst akzeptiert. Teil 11 soll das Modul stabil einführen, nicht alle späteren Komfortfunktionen sofort lösen.
+Diese Nachteile sind bewusst akzeptiert. Teil 11 bleibt in der Reihenfolge der Reihe, vertieft das Aufgabenmodul aber direkt so weit, dass es fachlich greifbarer und praxisnäher wird.
 
 ---
 
@@ -247,9 +296,13 @@ Diese Nachteile sind bewusst akzeptiert. Teil 11 soll das Modul stabil einführe
 - Todos werden serverseitig validiert.
 - `scope` akzeptiert nur `private` oder `family`.
 - `status` akzeptiert nur `open` oder `done`.
+- `priority` akzeptiert nur definierte Werte.
+- Datumsfelder werden serverseitig im Format `YYYY-MM-DD` validiert.
 - Familienaufgaben dürfen nur erstellt werden, wenn der Nutzer einem Haushalt zugeordnet ist.
+- Zugewiesene Personen müssen aktiv sein und zum passenden Haushalt gehören.
 - Nutzer sehen nur eigene private Aufgaben oder Aufgaben ihres Haushalts.
 - Admins sehen Aufgaben im Administrationsbereich.
+- Kommentare werden serverseitig begrenzt und mit Autor gespeichert.
 - POST-Aktionen bleiben durch CSRF-Token geschützt.
 - Ausgaben im Frontend werden über DOM-Methoden wie `textContent` gesetzt.
 - Die Speicherung nutzt weiterhin die bestehende Storage-Abstraktion.
@@ -261,6 +314,9 @@ Diese Nachteile sind bewusst akzeptiert. Teil 11 soll das Modul stabil einführe
 - Familienaufgaben ohne Haushalt erlauben
 - private Aufgaben versehentlich für alle Haushaltsmitglieder anzeigen
 - Todo-Status nur im Frontend ändern und nicht speichern
+- Bearbeitungsfelder nur clientseitig ändern und nicht über die API absichern
+- Zuweisungen an Nutzer aus fremden Haushalten erlauben
+- Kommentare ohne Autor oder Rechteprüfung löschen
 - `todos` nicht in JSON, SQLite und MySQL gleichermaßen berücksichtigen
 - alte Datenstrukturen ohne `todos` nicht abfangen
 - UI-Sichtbarkeit mit Backend-Rechten verwechseln
@@ -275,13 +331,19 @@ Diese Nachteile sind bewusst akzeptiert. Teil 11 soll das Modul stabil einführe
 | private Aufgabe erstellen | Aufgabe erscheint unter „Meine Aufgaben“ |
 | Familienaufgabe erstellen | Aufgabe erscheint unter „Familienaufgaben“ |
 | Nutzer ohne Haushalt erstellt Familienaufgabe | Backend lehnt Anfrage ab |
+| Aufgabe bearbeiten | Titel, Priorität, Zuweisung und Datumsfelder werden gespeichert |
 | Aufgabe abhaken | Status wechselt zwischen offen und erledigt |
+| Aufgabe kommentieren | Kommentar erscheint mit Autor und Zeitpunkt |
+| Kommentar löschen | berechtigte Nutzer können Kommentar entfernen |
 | Aufgabe löschen | Aufgabe verschwindet dauerhaft |
 | zweiter Nutzer im selben Haushalt | sieht Familienaufgabe |
 | Nutzer aus anderem Haushalt | sieht Familienaufgabe nicht |
 | Admin öffnet Verwaltung | Todo-Tab ist sichtbar |
 | ungültiger Scope per API | Anfrage wird abgelehnt |
 | ungültiges Fälligkeitsdatum | Anfrage wird abgelehnt |
+| ungültige Priorität | Anfrage wird abgelehnt |
+| Zuweisung an fremden Haushalt | Anfrage wird abgelehnt |
+| Erinnerung erreicht | Todo-Zusammenfassung weist darauf hin |
 
 ---
 
@@ -290,23 +352,31 @@ Diese Nachteile sind bewusst akzeptiert. Teil 11 soll das Modul stabil einführe
 - Die Anwendung besitzt jetzt ein zweites Hauptmodul neben den Listen.
 - Private Aufgaben und Familienaufgaben sind fachlich getrennt.
 - Das Datenmodell wurde um `todos` erweitert.
+- Aufgaben sind nachträglich bearbeitbar.
+- Prioritäten und Zuständigkeiten sind Teil des Aufgabenmodells.
+- Kommentare ermöglichen kurze Rückfragen direkt an der Aufgabe.
+- Fälligkeits-, Erinnerungs- und Kalenderdatum bereiten spätere Module vor.
 - JSON-, SQLite- und MySQL-Speicherung berücksichtigen Aufgaben.
-- Die Oberfläche enthält einen eigenen Todo-Bereich.
+- Die Oberfläche enthält einen eigenen Todo-Bereich mit Zusammenfassung.
 - Der Adminbereich enthält einen zusätzlichen Todo-Tab.
 
 ---
 
-## Grenzen dieser Version
+## Vertiefung dieser Version
 
-- Aufgaben können noch nicht nachträglich umbenannt werden.
-- Aufgaben haben noch keine Priorität.
-- Aufgaben können noch nicht einzelnen Familienmitgliedern zugewiesen werden.
-- Es gibt noch keine Kommentare zu Aufgaben.
-- Es gibt noch keine Kalenderverknüpfung.
-- Es gibt noch keine Erinnerungen oder Benachrichtigungen.
-- Es gibt noch keine automatische Dashboard-Zusammenfassung.
+Die ursprünglich geplanten Grenzen dieser Stufe wurden direkt vertieft. Aufgaben sind deshalb nicht mehr nur einfache offene/erledigte Einträge, sondern besitzen mehrere praxisnahe Eigenschaften:
 
-Diese Grenzen sind passend für den Lernstand. Erst wird das Modul eingeführt, später wird es fachlich vertieft.
+- Aufgaben können nachträglich umbenannt und bearbeitet werden.
+- Aufgaben haben eine Priorität.
+- Familienaufgaben können einzelnen Haushaltsmitgliedern zugewiesen werden.
+- Aufgaben besitzen Kommentare.
+- Aufgaben haben einen Kalenderbezug über ein separates Kalenderdatum.
+- Aufgaben haben ein Erinnerungsdatum.
+- Der Todo-Bereich enthält eine automatische Zusammenfassung für überfällige Aufgaben, erreichte Erinnerungen und eigene Zuständigkeiten.
+
+Wichtig ist die fachliche Einordnung: Die Erinnerungen sind in dieser Version noch keine echten Push-, Mail- oder Systembenachrichtigungen. Sie sind gespeicherte Erinnerungsdaten, die in der Oberfläche ausgewertet werden. Der Kalenderbezug ist ebenfalls noch kein vollständiger Kalender, sondern ein vorbereitendes Datumsfeld für Teil 15 und 16.
+
+Damit bleibt die Reihe sauber: Teil 11 vertieft Aufgaben, ohne die kommenden Hauptmodule Nachrichten und Kalender bereits vollständig vorzuziehen.
 
 ---
 
@@ -332,10 +402,10 @@ Teil 11 zeigt einen realistischen Schritt in wachsenden Anwendungen: Aus einer L
 In einem produktiven System würde man zusätzlich überlegen:
 
 - eigene Tabellenmigrationen pro Release
-- Bearbeiten-Funktion für Aufgaben
-- Zuständigkeiten pro Aufgabe
-- Prioritäten
-- Erinnerungen
+- echte Datenbankmigrationen statt einfacher Schema-Erweiterung
+- separate Kommentartabelle bei sehr vielen Kommentaren
+- echte Push-, E-Mail- oder In-App-Benachrichtigungen
+- vollständige Kalenderintegration
 - Audit-Log
 - Tests für Rechteprüfungen
 - serverseitige Sortierung und Pagination bei vielen Aufgaben

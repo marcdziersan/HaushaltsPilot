@@ -99,16 +99,28 @@ $csrfToken = get_csrf_token();
         .inline-actions { display:flex; flex-wrap:wrap; gap:6px; }
         .footer-note { margin-top:22px; font-size:.82rem; color:var(--muted); text-align:center; }
         .todo-panel { margin-top:22px; }
-        .todo-form { display:grid; grid-template-columns:1fr 180px auto auto; gap:10px; align-items:center; margin-bottom:14px; }
+        .todo-form { display:grid; grid-template-columns:2fr 140px 140px 180px; gap:10px; align-items:center; margin-bottom:14px; }
+        .todo-advanced { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:-6px 0 14px; }
+        .todo-dashboard { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:0 0 16px; }
+        .dashboard-card { background:white; border:1px solid var(--border); border-radius:14px; padding:12px; }
+        .dashboard-card strong { display:block; margin-bottom:4px; }
+        .dashboard-card span { color:var(--muted); font-size:.84rem; }
         .todo-board { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
         .todo-column h3 { margin:0 0 10px; font-size:1rem; }
-        .todo-list { list-style:none; padding:0; margin:0; display:grid; gap:10px; }
-        .todo-item { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; background:white; border:1px solid var(--border); border-radius:14px; padding:12px; }
-        .todo-item.done { background:var(--done); opacity:.75; }
+        .todo-list { list-style:none; padding:0; margin:0; display:grid; gap:12px; }
+        .todo-item { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:start; background:white; border:1px solid var(--border); border-radius:14px; padding:12px; }
+        .todo-item.done { background:var(--done); opacity:.78; }
         .todo-item.done .todo-title { text-decoration:line-through; color:var(--muted); }
         .todo-title { display:block; font-weight:bold; margin-bottom:6px; word-break:break-word; }
-        .todo-actions { display:flex; gap:8px; }
-        @media(max-width:900px){ .todo-form{grid-template-columns:1fr;} .todo-board{grid-template-columns:1fr;} }
+        .todo-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+        .todo-edit-form { grid-column:1 / -1; display:grid; grid-template-columns:2fr repeat(3,1fr); gap:8px; border-top:1px solid var(--border); padding-top:10px; }
+        .todo-edit-form .wide { grid-column:1 / -1; }
+        .comment-box { grid-column:1 / -1; border-top:1px solid var(--border); padding-top:10px; }
+        .comment-list { display:grid; gap:6px; margin:0 0 8px; }
+        .comment-item { background:var(--soft); border:1px solid var(--border); border-radius:10px; padding:8px; font-size:.86rem; }
+        .comment-item small { display:block; color:var(--muted); margin-top:4px; }
+        .comment-form { display:grid; grid-template-columns:1fr auto; gap:8px; }
+        @media(max-width:900px){ .todo-form,.todo-advanced,.todo-dashboard,.todo-board,.todo-edit-form{grid-template-columns:1fr;} }
         @media(max-width:900px){ .layout{grid-template-columns:1fr;} .item-form{grid-template-columns:1fr;} .topbar{display:block;} .userbox{text-align:left;margin-top:12px;} }
         @media(max-width:560px){ body{padding:12px;} .app{padding:18px;} .stats{grid-template-columns:1fr;} .shopping-item{grid-template-columns:1fr;} .item-actions{width:100%;} .toggle-btn,.delete-btn{flex:1;} .current-title{display:block;} .settings-header{display:block;} }
     </style>
@@ -193,11 +205,20 @@ $csrfToken = get_csrf_token();
 
         <section class="panel todo-panel" id="todoPanel">
             <h2>Todos</h2>
-            <p>Aufgaben sind ab Teil 11 ein eigenes Modul: private Todos gehören nur dir, Familienaufgaben sind für Mitglieder deines Haushalts sichtbar.</p>
+            <p>Aufgaben sind ab Teil 11 ein vertieftes Modul: privat oder gemeinsam, mit Priorität, Zuständigkeit, Kommentaren, Fälligkeit, Erinnerung und Kalenderbezug.</p>
             <form class="todo-form" id="todoForm">
                 <input type="text" id="todoTitleInput" placeholder="Neue Aufgabe, z. B. Müll rausbringen" autocomplete="off" maxlength="120">
                 <input type="date" id="todoDueInput" aria-label="Fälligkeitsdatum">
+                <select id="todoPriorityInput" aria-label="Priorität wählen">
+                    <option value="low">Niedrig</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="high">Hoch</option>
+                    <option value="urgent">Dringend</option>
+                </select>
+                <select id="todoAssignedInput" aria-label="Zuständige Person"></select>
                 <label class="scope-row"><input type="checkbox" id="todoFamilyInput"> Familienaufgabe</label>
+                <input type="date" id="todoReminderInput" aria-label="Erinnerungsdatum">
+                <input type="date" id="todoCalendarInput" aria-label="Kalenderdatum">
                 <button class="add-btn" type="submit">Aufgabe erstellen</button>
             </form>
             <section class="stats">
@@ -205,6 +226,7 @@ $csrfToken = get_csrf_token();
                 <div class="stat-card"><span>Offen</span><strong id="todoOpenCount">0</strong></div>
                 <div class="stat-card"><span>Erledigt</span><strong id="todoDoneCount">0</strong></div>
             </section>
+            <section class="todo-dashboard" id="todoDashboard"></section>
             <div class="todo-board">
                 <div class="todo-column"><h3>Meine Aufgaben</h3><ul class="todo-list" id="privateTodoList"></ul><div class="empty-message" id="privateTodoEmpty">Keine privaten Aufgaben vorhanden.</div></div>
                 <div class="todo-column"><h3>Familienaufgaben</h3><ul class="todo-list" id="familyTodoList"></ul><div class="empty-message" id="familyTodoEmpty">Keine Familienaufgaben vorhanden.</div></div>
@@ -240,7 +262,7 @@ $csrfToken = get_csrf_token();
                 <div class="tab-panel" id="adminTabTodos">
                     <h3>Todo-Übersicht</h3>
                     <select id="adminTodoFilter"><option value="all">Alle Aufgaben</option><option value="private">Private Aufgaben</option><option value="family">Familienaufgaben</option><option value="open">Offen</option><option value="done">Erledigt</option></select>
-                    <div class="table-wrap" style="margin-top:10px;"><table><thead><tr><th>Aufgabe</th><th>Bereich</th><th>Besitzer</th><th>Haushalt</th><th>Fällig</th><th>Status</th><th>Aktionen</th></tr></thead><tbody id="adminTodoTableBody"></tbody></table></div>
+                    <div class="table-wrap" style="margin-top:10px;"><table><thead><tr><th>Aufgabe</th><th>Bereich</th><th>Priorität</th><th>Zuweisung</th><th>Fällig</th><th>Erinnerung</th><th>Status</th><th>Kommentare</th><th>Aktionen</th></tr></thead><tbody id="adminTodoTableBody"></tbody></table></div>
                 </div>
             </div>
         </section>
@@ -250,72 +272,79 @@ $csrfToken = get_csrf_token();
 
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const currentUserLabel = document.getElementById('currentUserLabel');
-        const currentFamilyLabel = document.getElementById('currentFamilyLabel');
-        const listForm = document.getElementById('listForm');
-        const listNameInput = document.getElementById('listNameInput');
-        const listTypeInput = document.getElementById('listTypeInput');
-        const listSharedInput = document.getElementById('listSharedInput');
-        const listOwnerInput = document.getElementById('listOwnerInput');
-        const adminCreateOwnerBox = document.getElementById('adminCreateOwnerBox');
-        const myListButtons = document.getElementById('myListButtons');
-        const sharedShoppingListButtons = document.getElementById('sharedShoppingListButtons');
-        const sharedHouseholdListButtons = document.getElementById('sharedHouseholdListButtons');
-        const sharedOtherListButtons = document.getElementById('sharedOtherListButtons');
-        const otherListButtons = document.getElementById('otherListButtons');
-        const adminOtherListsGroup = document.getElementById('adminOtherListsGroup');
-        const myListCount = document.getElementById('myListCount');
-        const sharedShoppingListCount = document.getElementById('sharedShoppingListCount');
-        const sharedHouseholdListCount = document.getElementById('sharedHouseholdListCount');
-        const sharedOtherListCount = document.getElementById('sharedOtherListCount');
-        const otherListCount = document.getElementById('otherListCount');
-        const currentListTitle = document.getElementById('currentListTitle');
-        const currentListInfo = document.getElementById('currentListInfo');
-        const listSettings = document.getElementById('listSettings');
-        const listSettingsTitle = document.getElementById('listSettingsTitle');
-        const listSettingsInfo = document.getElementById('listSettingsInfo');
-        const toggleVisibilityButton = document.getElementById('toggleVisibilityButton');
-        const activeListTypeSelect = document.getElementById('activeListTypeSelect');
-        const updateListTypeButton = document.getElementById('updateListTypeButton');
-        const deleteListButton = document.getElementById('deleteListButton');
-        const ownerSelectRow = document.getElementById('ownerSelectRow');
-        const activeListOwnerSelect = document.getElementById('activeListOwnerSelect');
-        const updateOwnerButton = document.getElementById('updateOwnerButton');
-        const itemForm = document.getElementById('itemForm');
-        const itemNameInput = document.getElementById('itemNameInput');
-        const itemAmountInput = document.getElementById('itemAmountInput');
-        const itemCategoryInput = document.getElementById('itemCategoryInput');
-        const statusMessage = document.getElementById('statusMessage');
-        const totalCount = document.getElementById('totalCount');
-        const openCount = document.getElementById('openCount');
-        const doneCount = document.getElementById('doneCount');
-        const shoppingList = document.getElementById('shoppingList');
-        const emptyMessage = document.getElementById('emptyMessage');
-        const todoForm = document.getElementById('todoForm');
-        const todoTitleInput = document.getElementById('todoTitleInput');
-        const todoDueInput = document.getElementById('todoDueInput');
-        const todoFamilyInput = document.getElementById('todoFamilyInput');
-        const privateTodoList = document.getElementById('privateTodoList');
-        const familyTodoList = document.getElementById('familyTodoList');
-        const privateTodoEmpty = document.getElementById('privateTodoEmpty');
-        const familyTodoEmpty = document.getElementById('familyTodoEmpty');
-        const todoTotalCount = document.getElementById('todoTotalCount');
-        const todoOpenCount = document.getElementById('todoOpenCount');
-        const todoDoneCount = document.getElementById('todoDoneCount');
-        const adminPanel = document.getElementById('adminPanel');
-        const familyForm = document.getElementById('familyForm');
-        const familyNameInput = document.getElementById('familyNameInput');
-        const familyTableBody = document.getElementById('familyTableBody');
-        const userTableBody = document.getElementById('userTableBody');
-        const adminListFilter = document.getElementById('adminListFilter');
-        const adminListTableBody = document.getElementById('adminListTableBody');
-        const adminTodoFilter = document.getElementById('adminTodoFilter');
-        const adminTodoTableBody = document.getElementById('adminTodoTableBody');
+        const byId = (id) => document.getElementById(id);
+
+        const currentUserLabel = byId('currentUserLabel');
+        const currentFamilyLabel = byId('currentFamilyLabel');
+        const listForm = byId('listForm');
+        const listNameInput = byId('listNameInput');
+        const listTypeInput = byId('listTypeInput');
+        const listSharedInput = byId('listSharedInput');
+        const listOwnerInput = byId('listOwnerInput');
+        const adminCreateOwnerBox = byId('adminCreateOwnerBox');
+        const myListButtons = byId('myListButtons');
+        const sharedShoppingListButtons = byId('sharedShoppingListButtons');
+        const sharedHouseholdListButtons = byId('sharedHouseholdListButtons');
+        const sharedOtherListButtons = byId('sharedOtherListButtons');
+        const otherListButtons = byId('otherListButtons');
+        const adminOtherListsGroup = byId('adminOtherListsGroup');
+        const myListCount = byId('myListCount');
+        const sharedShoppingListCount = byId('sharedShoppingListCount');
+        const sharedHouseholdListCount = byId('sharedHouseholdListCount');
+        const sharedOtherListCount = byId('sharedOtherListCount');
+        const otherListCount = byId('otherListCount');
+        const currentListTitle = byId('currentListTitle');
+        const currentListInfo = byId('currentListInfo');
+        const listSettings = byId('listSettings');
+        const listSettingsTitle = byId('listSettingsTitle');
+        const listSettingsInfo = byId('listSettingsInfo');
+        const toggleVisibilityButton = byId('toggleVisibilityButton');
+        const activeListTypeSelect = byId('activeListTypeSelect');
+        const updateListTypeButton = byId('updateListTypeButton');
+        const deleteListButton = byId('deleteListButton');
+        const ownerSelectRow = byId('ownerSelectRow');
+        const activeListOwnerSelect = byId('activeListOwnerSelect');
+        const updateOwnerButton = byId('updateOwnerButton');
+        const itemForm = byId('itemForm');
+        const itemNameInput = byId('itemNameInput');
+        const itemAmountInput = byId('itemAmountInput');
+        const itemCategoryInput = byId('itemCategoryInput');
+        const statusMessage = byId('statusMessage');
+        const totalCount = byId('totalCount');
+        const openCount = byId('openCount');
+        const doneCount = byId('doneCount');
+        const shoppingList = byId('shoppingList');
+        const emptyMessage = byId('emptyMessage');
+        const todoForm = byId('todoForm');
+        const todoTitleInput = byId('todoTitleInput');
+        const todoDueInput = byId('todoDueInput');
+        const todoPriorityInput = byId('todoPriorityInput');
+        const todoAssignedInput = byId('todoAssignedInput');
+        const todoFamilyInput = byId('todoFamilyInput');
+        const todoReminderInput = byId('todoReminderInput');
+        const todoCalendarInput = byId('todoCalendarInput');
+        const privateTodoList = byId('privateTodoList');
+        const familyTodoList = byId('familyTodoList');
+        const privateTodoEmpty = byId('privateTodoEmpty');
+        const familyTodoEmpty = byId('familyTodoEmpty');
+        const todoTotalCount = byId('todoTotalCount');
+        const todoOpenCount = byId('todoOpenCount');
+        const todoDoneCount = byId('todoDoneCount');
+        const todoDashboard = byId('todoDashboard');
+        const adminPanel = byId('adminPanel');
+        const familyForm = byId('familyForm');
+        const familyNameInput = byId('familyNameInput');
+        const familyTableBody = byId('familyTableBody');
+        const userTableBody = byId('userTableBody');
+        const adminListFilter = byId('adminListFilter');
+        const adminListTableBody = byId('adminListTableBody');
+        const adminTodoFilter = byId('adminTodoFilter');
+        const adminTodoTableBody = byId('adminTodoTableBody');
         const adminTabButtons = document.querySelectorAll('[data-admin-tab]');
-        const adminTabFamilies = document.getElementById('adminTabFamilies');
-        const adminTabUsers = document.getElementById('adminTabUsers');
-        const adminTabLists = document.getElementById('adminTabLists');
-        const adminTabTodos = document.getElementById('adminTabTodos');
+        const adminTabFamilies = byId('adminTabFamilies');
+        const adminTabUsers = byId('adminTabUsers');
+        const adminTabLists = byId('adminTabLists');
+        const adminTabTodos = byId('adminTabTodos');
 
         let appData = { currentUser:null, currentFamily:null, lists:[], activeListId:null, todos:[], adminTodos:[], users:[], activeUsers:[], families:[], isAdmin:false };
 
@@ -333,17 +362,44 @@ $csrfToken = get_csrf_token();
             if (!response.ok || result.success !== true) throw new Error(result.message || 'Unbekannter Serverfehler.');
             return result;
         }
-        async function loadData() { try { const result = await apiGet('load'); appData = result.data; renderApp(); } catch (error) { showStatus(error.message, true); } }
-        function getActiveList() { return appData.lists.find(function(list) { return list.id === appData.activeListId; }); }
-        function getUser(userId) { return appData.users.find(function(user) { return user.id === userId; }) || null; }
-        function getUserName(userId) { const user = getUser(userId); return user ? user.displayName : 'Unbekannt'; }
-        function getFamily(familyId) { return appData.families.find(function(family) { return family.id === familyId; }) || null; }
+        async function loadData() {
+            try { const result = await apiGet('load'); appData = result.data; renderApp(); }
+            catch (error) { showStatus(error.message, true); }
+        }
+        function getActiveList() { return appData.lists.find((list) => list.id === appData.activeListId); }
+        function getUser(userId) { return appData.users.find((user) => user.id === userId) || null; }
+        function getUserName(userId) { if (!userId) return 'nicht zugewiesen'; const user = getUser(userId); return user ? user.displayName : 'Unbekannt'; }
+        function getFamily(familyId) { return appData.families.find((family) => family.id === familyId) || null; }
         function getFamilyName(familyId) { if (!familyId) return 'kein Haushalt'; const family = getFamily(familyId); return family ? family.name : 'unbekannter Haushalt'; }
         function listTypeLabel(type) { if (type === 'household') return 'Haushaltsliste'; if (type === 'other') return 'Sonstige Liste'; return 'Einkaufsliste'; }
         function todoScopeLabel(scope) { return scope === 'family' ? 'Familienaufgabe' : 'Private Aufgabe'; }
         function todoStatusLabel(status) { return status === 'done' ? 'erledigt' : 'offen'; }
-        function formatDueDate(value) { return value ? value : 'kein Datum'; }
+        function priorityLabel(priority) { return { low:'niedrig', normal:'normal', high:'hoch', urgent:'dringend' }[priority] || 'normal'; }
+        function formatDate(value) { return value ? value : 'kein Datum'; }
         function canManageListSettings(list) { return appData.isAdmin === true || (appData.currentUser && list.ownerId === appData.currentUser.id); }
+        function todayString() { return new Date().toISOString().slice(0, 10); }
+        function isOverdue(todo) { return todo.status !== 'done' && todo.dueAt && todo.dueAt < todayString(); }
+        function isReminderDue(todo) { return todo.status !== 'done' && todo.reminderAt && todo.reminderAt <= todayString(); }
+
+        function fillUserSelect(select, selectedValue, scope, includeEmpty) {
+            select.textContent = '';
+            if (includeEmpty) {
+                const empty = document.createElement('option');
+                empty.value = '';
+                empty.textContent = 'nicht zugewiesen';
+                select.appendChild(empty);
+            }
+            const currentFamilyId = appData.currentUser ? appData.currentUser.familyId : '';
+            const users = (appData.activeUsers || []).filter((user) => scope === 'family' ? user.familyId === currentFamilyId && currentFamilyId !== '' : appData.currentUser && user.id === appData.currentUser.id);
+            users.forEach((user) => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.displayName + ' (@' + user.username + ')';
+                if (user.id === selectedValue) option.selected = true;
+                select.appendChild(option);
+            });
+        }
+        function refreshCreateTodoAssignees() { fillUserSelect(todoAssignedInput, appData.currentUser ? appData.currentUser.id : '', todoFamilyInput.checked ? 'family' : 'private', true); }
 
         async function createList() {
             const name = listNameInput.value.trim();
@@ -362,9 +418,29 @@ $csrfToken = get_csrf_token();
         async function toggleItemDone(itemId) { const list = getActiveList(); if (!list) return; try { const result = await apiPost('toggle_item', { listId:list.id, itemId:itemId }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
         async function deleteItem(itemId) { const list = getActiveList(); if (!list) return; try { const result = await apiPost('delete_item', { listId:list.id, itemId:itemId }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
 
-        async function createTodo() { const title = todoTitleInput.value.trim(); if (title === '') { showStatus('Bitte gib eine Aufgabe ein.', true); todoTitleInput.focus(); return; } const scope = todoFamilyInput.checked ? 'family' : 'private'; try { const result = await apiPost('create_todo', { title:title, dueAt:todoDueInput.value, scope:scope }); appData = result.data; todoTitleInput.value=''; todoDueInput.value=''; todoFamilyInput.checked=false; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
-        async function toggleTodoDone(todoId) { try { const result = await apiPost('toggle_todo', { todoId:todoId }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
-        async function deleteTodo(todoId) { if (!confirm('Aufgabe wirklich löschen?')) return; try { const result = await apiPost('delete_todo', { todoId:todoId }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
+        async function createTodo() {
+            const title = todoTitleInput.value.trim();
+            if (title === '') { showStatus('Bitte gib eine Aufgabe ein.', true); todoTitleInput.focus(); return; }
+            const scope = todoFamilyInput.checked ? 'family' : 'private';
+            const payload = { title, scope, priority:todoPriorityInput.value, assignedTo:todoAssignedInput.value, dueAt:todoDueInput.value, reminderAt:todoReminderInput.value, calendarDate:todoCalendarInput.value };
+            try {
+                const result = await apiPost('create_todo', payload);
+                appData = result.data;
+                todoTitleInput.value = '';
+                todoDueInput.value = '';
+                todoReminderInput.value = '';
+                todoCalendarInput.value = '';
+                todoPriorityInput.value = 'normal';
+                todoFamilyInput.checked = false;
+                renderApp();
+                showStatus(result.message);
+            } catch(error) { showStatus(error.message, true); }
+        }
+        async function updateTodo(todoId, payload) { try { const result = await apiPost('update_todo', Object.assign({ todoId }, payload)); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
+        async function toggleTodoDone(todoId) { try { const result = await apiPost('toggle_todo', { todoId }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
+        async function deleteTodo(todoId) { if (!confirm('Aufgabe wirklich löschen?')) return; try { const result = await apiPost('delete_todo', { todoId }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
+        async function addTodoComment(todoId, input) { const body = input.value.trim(); if (body === '') { showStatus('Bitte gib einen Kommentar ein.', true); return; } try { const result = await apiPost('add_todo_comment', { todoId, body }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
+        async function deleteTodoComment(todoId, commentId) { try { const result = await apiPost('delete_todo_comment', { todoId, commentId }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
 
         async function adminCreateFamily() { const name = familyNameInput.value.trim(); if (name === '') { showStatus('Bitte gib einen Haushaltsnamen ein.', true); return; } try { const result = await apiPost('admin_create_family', { name:name }); appData = result.data; familyNameInput.value=''; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
         async function adminRenameFamily(familyId) { const family = getFamily(familyId); if (!family) return; const name = prompt('Neuer Name für Haushalt:', family.name); if (name === null) return; try { const result = await apiPost('admin_update_family_name', { familyId:familyId, name:name.trim() }); appData = result.data; renderApp(); showStatus(result.message); } catch(error){ showStatus(error.message, true); } }
@@ -379,25 +455,97 @@ $csrfToken = get_csrf_token();
 
         function renderApp() { renderCurrentUser(); renderUserSelects(); renderListGroups(); renderActiveList(); renderTodos(); renderAdminPanel(); }
         function renderCurrentUser() { if (!appData.currentUser) return; currentUserLabel.textContent = appData.currentUser.displayName + ' (' + appData.currentUser.role + ')'; currentFamilyLabel.textContent = 'Haushalt: ' + getFamilyName(appData.currentUser.familyId); }
-        function renderUserSelects() { adminCreateOwnerBox.classList.toggle('visible', appData.isAdmin === true); listOwnerInput.textContent=''; activeListOwnerSelect.textContent=''; appData.activeUsers.forEach(function(user){ const label = user.displayName + ' (@' + user.username + ') – ' + getFamilyName(user.familyId); const option = document.createElement('option'); option.value=user.id; option.textContent=label; if (appData.currentUser && user.id === appData.currentUser.id) option.selected=true; listOwnerInput.appendChild(option); const option2 = document.createElement('option'); option2.value=user.id; option2.textContent=label; activeListOwnerSelect.appendChild(option2); }); }
+        function renderUserSelects() {
+            adminCreateOwnerBox.classList.toggle('visible', appData.isAdmin === true);
+            listOwnerInput.textContent='';
+            activeListOwnerSelect.textContent='';
+            appData.activeUsers.forEach(function(user){
+                const label = user.displayName + ' (@' + user.username + ') – ' + getFamilyName(user.familyId);
+                const option = document.createElement('option'); option.value=user.id; option.textContent=label; if (appData.currentUser && user.id === appData.currentUser.id) option.selected=true; listOwnerInput.appendChild(option);
+                const option2 = document.createElement('option'); option2.value=user.id; option2.textContent=label; activeListOwnerSelect.appendChild(option2);
+            });
+            refreshCreateTodoAssignees();
+        }
         function renderListGroups() { myListButtons.textContent=''; sharedShoppingListButtons.textContent=''; sharedHouseholdListButtons.textContent=''; sharedOtherListButtons.textContent=''; otherListButtons.textContent=''; const mine=[], sharedShopping=[], sharedHousehold=[], sharedOther=[], other=[]; appData.lists.forEach(function(list){ if (appData.currentUser && list.ownerId === appData.currentUser.id) mine.push(list); else if (list.isShared === true && appData.currentUser && list.familyId === appData.currentUser.familyId && appData.currentUser.familyId !== '') { if (list.listType === 'household') sharedHousehold.push(list); else if (list.listType === 'other') sharedOther.push(list); else sharedShopping.push(list); } else other.push(list); }); renderListButtonGroup(myListButtons, mine); renderListButtonGroup(sharedShoppingListButtons, sharedShopping); renderListButtonGroup(sharedHouseholdListButtons, sharedHousehold); renderListButtonGroup(sharedOtherListButtons, sharedOther); renderListButtonGroup(otherListButtons, other); myListCount.textContent=mine.length; sharedShoppingListCount.textContent=sharedShopping.length; sharedHouseholdListCount.textContent=sharedHousehold.length; sharedOtherListCount.textContent=sharedOther.length; otherListCount.textContent=other.length; adminOtherListsGroup.classList.toggle('visible', appData.isAdmin === true); }
         function renderListButtonGroup(container, lists) { if (lists.length === 0) { const empty = document.createElement('div'); empty.className='empty-message'; empty.textContent='Keine Listen vorhanden.'; container.appendChild(empty); return; } lists.forEach(function(list){ const button = document.createElement('button'); button.className='list-button'; button.type='button'; if (list.id === appData.activeListId) button.classList.add('active'); const name = document.createElement('span'); name.textContent = list.name; const count = document.createElement('small'); count.textContent = listTypeLabel(list.listType) + ' · ' + list.items.length + ' Artikel'; button.appendChild(name); button.appendChild(count); button.addEventListener('click', function(){ selectList(list.id); }); container.appendChild(button); }); }
         function renderActiveList() { const list = getActiveList(); shoppingList.textContent=''; if (!list) { currentListTitle.textContent='Keine Liste'; currentListInfo.textContent='0 Artikel'; listSettings.classList.remove('visible'); updateStats([]); return; } currentListTitle.textContent=list.name; currentListInfo.textContent=list.items.length + ' Artikel'; renderListSettings(list); list.items.forEach(renderItem); updateStats(list.items); }
         function renderListSettings(list) { const canManage = canManageListSettings(list); listSettings.classList.toggle('visible', canManage); listSettingsTitle.textContent=list.name; listSettingsInfo.textContent='Typ: ' + listTypeLabel(list.listType) + ' | Besitzer: ' + getUserName(list.ownerId) + ' | Haushalt: ' + getFamilyName(list.familyId) + ' | ' + (list.isShared ? 'gemeinschaftlich' : 'privat'); toggleVisibilityButton.textContent = list.isShared ? 'Auf privat setzen' : 'Als Gemeinschaftsliste freigeben'; toggleVisibilityButton.disabled = list.familyId === '' && !list.isShared; activeListTypeSelect.value = list.listType || 'shopping'; updateListTypeButton.disabled = !canManage; deleteListButton.disabled = !canManage; ownerSelectRow.classList.toggle('visible', appData.isAdmin === true); activeListOwnerSelect.value = list.ownerId; }
         function renderItem(item) { const li=document.createElement('li'); li.className='shopping-item'; if (item.done) li.classList.add('done'); const main=document.createElement('div'); const name=document.createElement('span'); name.className='item-name'; name.textContent=item.name; const meta=document.createElement('div'); meta.className='item-meta'; const badges=['Menge: ' + (item.amount || 'keine Angabe'), 'Kategorie: ' + item.category, item.done ? 'Status: erledigt' : 'Status: offen', 'Erstellt von: ' + getUserName(item.createdBy)]; badges.forEach(function(text){ const b=document.createElement('span'); b.className='badge'; b.textContent=text; meta.appendChild(b); }); main.appendChild(name); main.appendChild(meta); const actions=document.createElement('div'); actions.className='item-actions'; const toggle=document.createElement('button'); toggle.className='toggle-btn'; toggle.type='button'; toggle.textContent=item.done?'Öffnen':'Erledigt'; toggle.addEventListener('click', function(){ toggleItemDone(item.id); }); const del=document.createElement('button'); del.className='delete-btn'; del.type='button'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteItem(item.id); }); actions.appendChild(toggle); actions.appendChild(del); li.appendChild(main); li.appendChild(actions); shoppingList.appendChild(li); }
         function updateStats(items) { const total=items.length; const done=items.filter(function(item){ return item.done === true; }).length; totalCount.textContent=total; doneCount.textContent=done; openCount.textContent=total-done; emptyMessage.style.display=total===0?'block':'none'; }
-        function renderTodos() { privateTodoList.textContent=''; familyTodoList.textContent=''; const todos = appData.todos || []; const privateTodos = todos.filter(function(todo){ return todo.scope === 'private'; }); const familyTodos = todos.filter(function(todo){ return todo.scope === 'family'; }); privateTodos.forEach(function(todo){ renderTodoItem(privateTodoList, todo); }); familyTodos.forEach(function(todo){ renderTodoItem(familyTodoList, todo); }); privateTodoEmpty.style.display = privateTodos.length === 0 ? 'block' : 'none'; familyTodoEmpty.style.display = familyTodos.length === 0 ? 'block' : 'none'; const done = todos.filter(function(todo){ return todo.status === 'done'; }).length; todoTotalCount.textContent = todos.length; todoDoneCount.textContent = done; todoOpenCount.textContent = todos.length - done; }
-        function renderTodoItem(container, todo) { const li=document.createElement('li'); li.className='todo-item'; if (todo.status === 'done') li.classList.add('done'); const main=document.createElement('div'); const title=document.createElement('span'); title.className='todo-title'; title.textContent=todo.title; const meta=document.createElement('div'); meta.className='item-meta'; const badges=[todoScopeLabel(todo.scope), 'Status: ' + todoStatusLabel(todo.status), 'Fällig: ' + formatDueDate(todo.dueAt), 'Besitzer: ' + getUserName(todo.ownerId)]; if (todo.scope === 'family') badges.push('Haushalt: ' + getFamilyName(todo.familyId)); badges.forEach(function(text){ const b=document.createElement('span'); b.className='badge'; b.textContent=text; meta.appendChild(b); }); main.appendChild(title); main.appendChild(meta); const actions=document.createElement('div'); actions.className='todo-actions'; const toggle=document.createElement('button'); toggle.className='toggle-btn'; toggle.type='button'; toggle.textContent=todo.status === 'done' ? 'Öffnen' : 'Erledigt'; toggle.addEventListener('click', function(){ toggleTodoDone(todo.id); }); const del=document.createElement('button'); del.className='delete-btn'; del.type='button'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteTodo(todo.id); }); actions.appendChild(toggle); actions.appendChild(del); li.appendChild(main); li.appendChild(actions); container.appendChild(li); }
+
+        function renderTodos() {
+            privateTodoList.textContent=''; familyTodoList.textContent=''; todoDashboard.textContent='';
+            const todos = appData.todos || [];
+            const privateTodos = todos.filter((todo) => todo.scope === 'private');
+            const familyTodos = todos.filter((todo) => todo.scope === 'family');
+            privateTodos.forEach((todo) => renderTodoItem(privateTodoList, todo));
+            familyTodos.forEach((todo) => renderTodoItem(familyTodoList, todo));
+            privateTodoEmpty.style.display = privateTodos.length === 0 ? 'block' : 'none';
+            familyTodoEmpty.style.display = familyTodos.length === 0 ? 'block' : 'none';
+            const done = todos.filter((todo) => todo.status === 'done').length;
+            const overdue = todos.filter(isOverdue).length;
+            const reminders = todos.filter(isReminderDue).length;
+            const assignedToMe = todos.filter((todo) => appData.currentUser && todo.assignedTo === appData.currentUser.id && todo.status !== 'done').length;
+            todoTotalCount.textContent = todos.length;
+            todoDoneCount.textContent = done;
+            todoOpenCount.textContent = todos.length - done;
+            renderDashboardCard('Überfällig', overdue + ' Aufgabe(n)', overdue > 0 ? 'Bitte prüfen' : 'Alles im Zeitplan');
+            renderDashboardCard('Erinnerungen', reminders + ' aktiv', reminders > 0 ? 'Erinnerungsdatum erreicht' : 'Keine fällige Erinnerung');
+            renderDashboardCard('Mir zugewiesen', assignedToMe + ' offen', 'Persönliche Arbeitslast');
+        }
+        function renderDashboardCard(title, value, detail) { const card=document.createElement('div'); card.className='dashboard-card'; const strong=document.createElement('strong'); strong.textContent=title + ': ' + value; const span=document.createElement('span'); span.textContent=detail; card.appendChild(strong); card.appendChild(span); todoDashboard.appendChild(card); }
+        function renderTodoItem(container, todo) {
+            const li=document.createElement('li'); li.className='todo-item'; if (todo.status === 'done') li.classList.add('done');
+            const main=document.createElement('div'); const title=document.createElement('span'); title.className='todo-title'; title.textContent=todo.title;
+            const meta=document.createElement('div'); meta.className='item-meta';
+            const badges=[todoScopeLabel(todo.scope), 'Status: ' + todoStatusLabel(todo.status), 'Priorität: ' + priorityLabel(todo.priority), 'Zugewiesen: ' + getUserName(todo.assignedTo), 'Fällig: ' + formatDate(todo.dueAt), 'Erinnerung: ' + formatDate(todo.reminderAt), 'Kalender: ' + formatDate(todo.calendarDate), 'Besitzer: ' + getUserName(todo.ownerId), 'Kommentare: ' + (todo.comments || []).length];
+            if (todo.scope === 'family') badges.push('Haushalt: ' + getFamilyName(todo.familyId));
+            if (isOverdue(todo)) badges.push('überfällig');
+            if (isReminderDue(todo)) badges.push('Erinnerung erreicht');
+            badges.forEach(function(text){ const b=document.createElement('span'); b.className='badge'; b.textContent=text; meta.appendChild(b); });
+            main.appendChild(title); main.appendChild(meta);
+            const actions=document.createElement('div'); actions.className='todo-actions';
+            const toggle=document.createElement('button'); toggle.className='toggle-btn'; toggle.type='button'; toggle.textContent=todo.status === 'done' ? 'Öffnen' : 'Erledigt'; toggle.addEventListener('click', function(){ toggleTodoDone(todo.id); });
+            const edit=document.createElement('button'); edit.className='small-btn'; edit.type='button'; edit.textContent='Bearbeiten';
+            const del=document.createElement('button'); del.className='delete-btn'; del.type='button'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteTodo(todo.id); });
+            actions.appendChild(toggle); actions.appendChild(edit); actions.appendChild(del); li.appendChild(main); li.appendChild(actions);
+            const editForm = buildTodoEditForm(todo); editForm.style.display='none'; edit.addEventListener('click', function(){ editForm.style.display = editForm.style.display === 'none' ? 'grid' : 'none'; }); li.appendChild(editForm);
+            li.appendChild(buildCommentsBox(todo));
+            container.appendChild(li);
+        }
+        function buildTodoEditForm(todo) {
+            const form=document.createElement('form'); form.className='todo-edit-form';
+            const title=document.createElement('input'); title.value=todo.title; title.maxLength=120;
+            const scope=document.createElement('select'); [['private','Privat'],['family','Familie']].forEach(function(pair){ const opt=document.createElement('option'); opt.value=pair[0]; opt.textContent=pair[1]; if (todo.scope===pair[0]) opt.selected=true; scope.appendChild(opt); });
+            const priority=document.createElement('select'); [['low','Niedrig'],['normal','Normal'],['high','Hoch'],['urgent','Dringend']].forEach(function(pair){ const opt=document.createElement('option'); opt.value=pair[0]; opt.textContent=pair[1]; if ((todo.priority || 'normal')===pair[0]) opt.selected=true; priority.appendChild(opt); });
+            const assigned=document.createElement('select'); fillUserSelect(assigned, todo.assignedTo || '', todo.scope, true); scope.addEventListener('change', function(){ fillUserSelect(assigned, assigned.value, scope.value, true); });
+            const due=document.createElement('input'); due.type='date'; due.value=todo.dueAt || '';
+            const reminder=document.createElement('input'); reminder.type='date'; reminder.value=todo.reminderAt || '';
+            const calendar=document.createElement('input'); calendar.type='date'; calendar.value=todo.calendarDate || '';
+            const save=document.createElement('button'); save.className='small-btn'; save.type='submit'; save.textContent='Speichern';
+            form.appendChild(title); form.appendChild(scope); form.appendChild(priority); form.appendChild(assigned); form.appendChild(due); form.appendChild(reminder); form.appendChild(calendar); form.appendChild(save);
+            form.addEventListener('submit', function(event){ event.preventDefault(); updateTodo(todo.id, { title:title.value.trim(), scope:scope.value, priority:priority.value, assignedTo:assigned.value, dueAt:due.value, reminderAt:reminder.value, calendarDate:calendar.value }); });
+            return form;
+        }
+        function buildCommentsBox(todo) {
+            const box=document.createElement('div'); box.className='comment-box';
+            const comments=document.createElement('div'); comments.className='comment-list';
+            (todo.comments || []).forEach(function(comment){ const item=document.createElement('div'); item.className='comment-item'; const body=document.createElement('div'); body.textContent=comment.body; const meta=document.createElement('small'); meta.textContent=getUserName(comment.authorId) + ' · ' + comment.createdAt; const del=document.createElement('button'); del.className='danger'; del.type='button'; del.textContent='Kommentar löschen'; del.addEventListener('click', function(){ deleteTodoComment(todo.id, comment.id); }); item.appendChild(body); item.appendChild(meta); item.appendChild(del); comments.appendChild(item); });
+            const form=document.createElement('form'); form.className='comment-form'; const input=document.createElement('input'); input.placeholder='Kommentar hinzufügen'; input.maxLength=600; const button=document.createElement('button'); button.className='small-btn'; button.type='submit'; button.textContent='Kommentieren'; form.appendChild(input); form.appendChild(button); form.addEventListener('submit', function(event){ event.preventDefault(); addTodoComment(todo.id, input); });
+            box.appendChild(comments); box.appendChild(form); return box;
+        }
+
         function renderAdminPanel() { adminPanel.classList.toggle('visible', appData.isAdmin === true); if (appData.isAdmin !== true) return; renderFamilyTable(); renderUserTable(); renderAdminListTable(); renderAdminTodoTable(); }
         function renderFamilyTable() { familyTableBody.textContent=''; appData.families.forEach(function(family){ const row=document.createElement('tr'); const name=document.createElement('td'); name.textContent=family.name; const members=document.createElement('td'); members.textContent=appData.users.filter(function(user){ return user.familyId === family.id; }).length; const lists=document.createElement('td'); lists.textContent=appData.lists.filter(function(list){ return list.familyId === family.id; }).length; const actions=document.createElement('td'); actions.className='inline-actions'; const rename=document.createElement('button'); rename.className='small-btn'; rename.textContent='Umbenennen'; rename.addEventListener('click', function(){ adminRenameFamily(family.id); }); const del=document.createElement('button'); del.className='danger'; del.textContent='Löschen'; del.addEventListener('click', function(){ adminDeleteFamily(family.id); }); actions.appendChild(rename); actions.appendChild(del); row.appendChild(name); row.appendChild(members); row.appendChild(lists); row.appendChild(actions); familyTableBody.appendChild(row); }); }
         function renderUserTable() { userTableBody.textContent=''; appData.users.forEach(function(user){ const row=document.createElement('tr'); const name=document.createElement('td'); name.textContent=user.displayName + ' (@' + user.username + ')'; const role=document.createElement('td'); role.textContent=user.role; const active=document.createElement('td'); active.textContent=user.active ? 'aktiv' : 'deaktiviert'; const familyCell=document.createElement('td'); const select=document.createElement('select'); const emptyOption=document.createElement('option'); emptyOption.value=''; emptyOption.textContent='kein Haushalt'; select.appendChild(emptyOption); appData.families.forEach(function(family){ const opt=document.createElement('option'); opt.value=family.id; opt.textContent=family.name; if (user.familyId === family.id) opt.selected=true; select.appendChild(opt); }); select.addEventListener('change', function(){ adminUpdateUserFamily(user.id, select.value); }); familyCell.appendChild(select); const actions=document.createElement('td'); actions.className='inline-actions'; const roleBtn=document.createElement('button'); roleBtn.className='small-btn'; roleBtn.textContent=user.role==='admin'?'zu Nutzer':'zu Admin'; roleBtn.addEventListener('click', function(){ adminUpdateRole(user.id, user.role==='admin'?'user':'admin'); }); const activeBtn=document.createElement('button'); activeBtn.className='warning'; activeBtn.textContent=user.active?'Deaktivieren':'Aktivieren'; activeBtn.addEventListener('click', function(){ adminToggleActive(user.id); }); const del=document.createElement('button'); del.className='danger'; del.textContent='Löschen'; del.addEventListener('click', function(){ adminDeleteUser(user.id); }); actions.appendChild(roleBtn); actions.appendChild(activeBtn); actions.appendChild(del); row.appendChild(name); row.appendChild(role); row.appendChild(active); row.appendChild(familyCell); row.appendChild(actions); userTableBody.appendChild(row); }); }
         function renderAdminListTable() { adminListTableBody.textContent=''; let lists=appData.lists.slice(); const filter=adminListFilter.value; if (filter==='own') lists=lists.filter(function(list){ return appData.currentUser && list.ownerId===appData.currentUser.id; }); if (filter==='shared') lists=lists.filter(function(list){ return list.isShared; }); if (filter==='shopping') lists=lists.filter(function(list){ return list.listType==='shopping'; }); if (filter==='household') lists=lists.filter(function(list){ return list.listType==='household'; }); if (filter==='private') lists=lists.filter(function(list){ return !list.isShared; }); lists.forEach(function(list){ const row=document.createElement('tr'); const name=document.createElement('td'); name.textContent=list.name; const type=document.createElement('td'); const typeSelect=document.createElement('select'); [['shopping','Einkaufsliste'],['household','Haushaltsliste'],['other','Sonstige Liste']].forEach(function(pair){ const opt=document.createElement('option'); opt.value=pair[0]; opt.textContent=pair[1]; if ((list.listType || 'shopping')===pair[0]) opt.selected=true; typeSelect.appendChild(opt); }); type.appendChild(typeSelect); const owner=document.createElement('td'); const ownerSelect=document.createElement('select'); appData.activeUsers.forEach(function(user){ const opt=document.createElement('option'); opt.value=user.id; opt.textContent=user.displayName + ' – ' + getFamilyName(user.familyId); if (user.id===list.ownerId) opt.selected=true; ownerSelect.appendChild(opt); }); owner.appendChild(ownerSelect); const family=document.createElement('td'); family.textContent=getFamilyName(list.familyId); const status=document.createElement('td'); status.textContent=list.isShared?'gemeinschaftlich':'privat'; const actions=document.createElement('td'); actions.className='inline-actions'; const typeBtn=document.createElement('button'); typeBtn.className='small-btn'; typeBtn.textContent='Typ speichern'; typeBtn.addEventListener('click', function(){ adminUpdateListType(list.id, typeSelect.value); }); const ownerBtn=document.createElement('button'); ownerBtn.className='small-btn'; ownerBtn.textContent='Besitzer speichern'; ownerBtn.addEventListener('click', function(){ adminUpdateListOwner(list.id, ownerSelect.value); }); const scopeBtn=document.createElement('button'); scopeBtn.className='warning'; scopeBtn.textContent=list.isShared?'Privat':'Teilen'; scopeBtn.addEventListener('click', function(){ adminToggleListVisibility(list); }); actions.appendChild(typeBtn); actions.appendChild(ownerBtn); actions.appendChild(scopeBtn); row.appendChild(name); row.appendChild(type); row.appendChild(owner); row.appendChild(family); row.appendChild(status); row.appendChild(actions); adminListTableBody.appendChild(row); }); }
-        function renderAdminTodoTable() { adminTodoTableBody.textContent=''; let todos=(appData.adminTodos || appData.todos || []).slice(); const filter=adminTodoFilter.value; if (filter==='private') todos=todos.filter(function(todo){ return todo.scope==='private'; }); if (filter==='family') todos=todos.filter(function(todo){ return todo.scope==='family'; }); if (filter==='open') todos=todos.filter(function(todo){ return todo.status==='open'; }); if (filter==='done') todos=todos.filter(function(todo){ return todo.status==='done'; }); todos.forEach(function(todo){ const row=document.createElement('tr'); const title=document.createElement('td'); title.textContent=todo.title; const scope=document.createElement('td'); scope.textContent=todoScopeLabel(todo.scope); const owner=document.createElement('td'); owner.textContent=getUserName(todo.ownerId); const family=document.createElement('td'); family.textContent=getFamilyName(todo.familyId); const due=document.createElement('td'); due.textContent=formatDueDate(todo.dueAt); const status=document.createElement('td'); status.textContent=todoStatusLabel(todo.status); const actions=document.createElement('td'); actions.className='inline-actions'; const toggle=document.createElement('button'); toggle.className='small-btn'; toggle.textContent=todo.status==='done'?'Öffnen':'Erledigt'; toggle.addEventListener('click', function(){ toggleTodoDone(todo.id); }); const del=document.createElement('button'); del.className='danger'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteTodo(todo.id); }); actions.appendChild(toggle); actions.appendChild(del); row.appendChild(title); row.appendChild(scope); row.appendChild(owner); row.appendChild(family); row.appendChild(due); row.appendChild(status); row.appendChild(actions); adminTodoTableBody.appendChild(row); }); }
+        function renderAdminTodoTable() { adminTodoTableBody.textContent=''; let todos=(appData.adminTodos || appData.todos || []).slice(); const filter=adminTodoFilter.value; if (filter==='private') todos=todos.filter((todo)=>todo.scope==='private'); if (filter==='family') todos=todos.filter((todo)=>todo.scope==='family'); if (filter==='open') todos=todos.filter((todo)=>todo.status==='open'); if (filter==='done') todos=todos.filter((todo)=>todo.status==='done'); todos.forEach(function(todo){ const row=document.createElement('tr'); [['title',todo.title],['scope',todoScopeLabel(todo.scope)],['priority',priorityLabel(todo.priority)],['assigned',getUserName(todo.assignedTo)],['due',formatDate(todo.dueAt)],['reminder',formatDate(todo.reminderAt)],['status',todoStatusLabel(todo.status)],['comments',String((todo.comments || []).length)]].forEach(function(pair){ const td=document.createElement('td'); td.textContent=pair[1]; row.appendChild(td); }); const actions=document.createElement('td'); actions.className='inline-actions'; const toggle=document.createElement('button'); toggle.className='small-btn'; toggle.textContent=todo.status==='done'?'Öffnen':'Erledigt'; toggle.addEventListener('click', function(){ toggleTodoDone(todo.id); }); const edit=document.createElement('button'); edit.className='small-btn'; edit.textContent='Titel ändern'; edit.addEventListener('click', function(){ const title=prompt('Neuer Aufgabentitel:', todo.title); if (title !== null) updateTodo(todo.id, { title:title.trim(), scope:todo.scope, priority:todo.priority, assignedTo:todo.assignedTo, dueAt:todo.dueAt, reminderAt:todo.reminderAt, calendarDate:todo.calendarDate }); }); const del=document.createElement('button'); del.className='danger'; del.textContent='Löschen'; del.addEventListener('click', function(){ deleteTodo(todo.id); }); actions.appendChild(toggle); actions.appendChild(edit); actions.appendChild(del); row.appendChild(actions); adminTodoTableBody.appendChild(row); }); }
         function switchAdminTab(tabName) { adminTabButtons.forEach(function(button){ button.classList.toggle('active', button.dataset.adminTab === tabName); }); adminTabFamilies.classList.toggle('active', tabName === 'families'); adminTabUsers.classList.toggle('active', tabName === 'users'); adminTabLists.classList.toggle('active', tabName === 'lists'); adminTabTodos.classList.toggle('active', tabName === 'todos'); }
         function showStatus(message, isError) { statusMessage.textContent=message; statusMessage.classList.toggle('error', isError===true); window.clearTimeout(showStatus.timeoutId); showStatus.timeoutId=window.setTimeout(function(){ statusMessage.textContent=''; statusMessage.classList.remove('error'); }, 3500); }
 
         listForm.addEventListener('submit', function(event){ event.preventDefault(); createList(); });
         todoForm.addEventListener('submit', function(event){ event.preventDefault(); createTodo(); });
+        todoFamilyInput.addEventListener('change', refreshCreateTodoAssignees);
         itemForm.addEventListener('submit', function(event){ event.preventDefault(); addItem(); });
         toggleVisibilityButton.addEventListener('click', updateActiveListVisibility);
         updateListTypeButton.addEventListener('click', updateActiveListType);

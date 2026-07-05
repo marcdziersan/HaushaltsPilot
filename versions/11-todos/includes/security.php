@@ -29,6 +29,7 @@ const MAX_ITEM_NAME_LENGTH = 80;
 const MAX_AMOUNT_LENGTH = 40;
 const MAX_TODO_TITLE_LENGTH = 120;
 const MAX_TODO_DUE_LENGTH = 10;
+const MAX_TODO_COMMENT_LENGTH = 600;
 
 const LIST_TYPE_SHOPPING = 'shopping';
 const LIST_TYPE_HOUSEHOLD = 'household';
@@ -38,6 +39,10 @@ const TODO_SCOPE_PRIVATE = 'private';
 const TODO_SCOPE_FAMILY = 'family';
 const TODO_STATUS_OPEN = 'open';
 const TODO_STATUS_DONE = 'done';
+const TODO_PRIORITY_LOW = 'low';
+const TODO_PRIORITY_NORMAL = 'normal';
+const TODO_PRIORITY_HIGH = 'high';
+const TODO_PRIORITY_URGENT = 'urgent';
 
 const ALLOWED_LIST_TYPES = [
     LIST_TYPE_SHOPPING,
@@ -53,6 +58,13 @@ const ALLOWED_TODO_SCOPES = [
 const ALLOWED_TODO_STATUSES = [
     TODO_STATUS_OPEN,
     TODO_STATUS_DONE,
+];
+
+const ALLOWED_TODO_PRIORITIES = [
+    TODO_PRIORITY_LOW,
+    TODO_PRIORITY_NORMAL,
+    TODO_PRIORITY_HIGH,
+    TODO_PRIORITY_URGENT,
 ];
 
 const ALLOWED_CATEGORIES = [
@@ -271,6 +283,15 @@ function clean_todo_scope(mixed $value): string
     return $value;
 }
 
+function clean_todo_priority(mixed $value): string
+{
+    if (!is_string($value) || !in_array($value, ALLOWED_TODO_PRIORITIES, true)) {
+        send_json(['success' => false, 'message' => 'Ungültige Priorität.'], 400);
+    }
+
+    return $value;
+}
+
 function clean_due_date(mixed $value): string
 {
     if ($value === null || $value === '') {
@@ -291,6 +312,28 @@ function normalize_app_data(array $data): array
     if (!isset($data['todos']) || !is_array($data['todos'])) {
         $data['todos'] = [];
     }
+
+    foreach ($data['todos'] as &$todo) {
+        if (!isset($todo['priority']) || !in_array($todo['priority'], ALLOWED_TODO_PRIORITIES, true)) {
+            $todo['priority'] = TODO_PRIORITY_NORMAL;
+        }
+        if (!isset($todo['assignedTo']) || !is_string($todo['assignedTo'])) {
+            $todo['assignedTo'] = '';
+        }
+        if (!isset($todo['reminderAt']) || !is_string($todo['reminderAt'])) {
+            $todo['reminderAt'] = '';
+        }
+        if (!isset($todo['calendarDate']) || !is_string($todo['calendarDate'])) {
+            $todo['calendarDate'] = '';
+        }
+        if (!isset($todo['comments']) || !is_array($todo['comments'])) {
+            $todo['comments'] = [];
+        }
+        if (!isset($todo['updatedAt']) || !is_string($todo['updatedAt'])) {
+            $todo['updatedAt'] = $todo['createdAt'] ?? now_string();
+        }
+    }
+    unset($todo);
 
     foreach ($data['lists'] ?? [] as &$list) {
         if (!isset($list['listType']) || !in_array($list['listType'], ALLOWED_LIST_TYPES, true)) {
@@ -373,7 +416,8 @@ function is_valid_data(mixed $data): bool
         if (
             !is_valid_todo($todo) ||
             !in_array($todo['ownerId'], $userIds, true) ||
-            !in_array($todo['familyId'], $familyIds, true)
+            !in_array($todo['familyId'], $familyIds, true) ||
+            ($todo['assignedTo'] !== '' && !in_array($todo['assignedTo'], $userIds, true))
         ) {
             return false;
         }
@@ -453,17 +497,60 @@ function is_valid_item(mixed $item): bool
 
 function is_valid_todo(mixed $todo): bool
 {
+    if (
+        !is_array($todo) ||
+        !isset(
+            $todo['id'],
+            $todo['ownerId'],
+            $todo['familyId'],
+            $todo['scope'],
+            $todo['title'],
+            $todo['status'],
+            $todo['priority'],
+            $todo['assignedTo'],
+            $todo['dueAt'],
+            $todo['reminderAt'],
+            $todo['calendarDate'],
+            $todo['comments'],
+            $todo['createdAt'],
+            $todo['updatedAt']
+        ) ||
+        !is_string($todo['id']) ||
+        !is_string($todo['ownerId']) ||
+        !is_string($todo['familyId']) ||
+        !in_array($todo['scope'], ALLOWED_TODO_SCOPES, true) ||
+        !is_string($todo['title']) ||
+        !in_array($todo['status'], ALLOWED_TODO_STATUSES, true) ||
+        !in_array($todo['priority'], ALLOWED_TODO_PRIORITIES, true) ||
+        !is_string($todo['assignedTo']) ||
+        !is_string($todo['dueAt']) ||
+        !is_string($todo['reminderAt']) ||
+        !is_string($todo['calendarDate']) ||
+        !is_array($todo['comments']) ||
+        !is_string($todo['createdAt']) ||
+        !is_string($todo['updatedAt'])
+    ) {
+        return false;
+    }
+
+    foreach ($todo['comments'] as $comment) {
+        if (!is_valid_todo_comment($comment)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function is_valid_todo_comment(mixed $comment): bool
+{
     return (
-        is_array($todo) &&
-        isset($todo['id'], $todo['ownerId'], $todo['familyId'], $todo['scope'], $todo['title'], $todo['status'], $todo['dueAt'], $todo['createdAt']) &&
-        is_string($todo['id']) &&
-        is_string($todo['ownerId']) &&
-        is_string($todo['familyId']) &&
-        in_array($todo['scope'], ALLOWED_TODO_SCOPES, true) &&
-        is_string($todo['title']) &&
-        in_array($todo['status'], ALLOWED_TODO_STATUSES, true) &&
-        is_string($todo['dueAt']) &&
-        is_string($todo['createdAt'])
+        is_array($comment) &&
+        isset($comment['id'], $comment['authorId'], $comment['body'], $comment['createdAt']) &&
+        is_string($comment['id']) &&
+        is_string($comment['authorId']) &&
+        is_string($comment['body']) &&
+        is_string($comment['createdAt'])
     );
 }
 
@@ -588,6 +675,17 @@ function find_todo_index(array $data, string $todoId): ?int
 {
     foreach ($data['todos'] as $index => $todo) {
         if ($todo['id'] === $todoId) {
+            return $index;
+        }
+    }
+
+    return null;
+}
+
+function find_todo_comment_index(array $todo, string $commentId): ?int
+{
+    foreach ($todo['comments'] as $index => $comment) {
+        if ($comment['id'] === $commentId) {
             return $index;
         }
     }
