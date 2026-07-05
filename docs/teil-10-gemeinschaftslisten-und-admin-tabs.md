@@ -11,7 +11,7 @@ Teil 10 verfeinert die Haushaltslisten durch Listentypen und strukturiert die in
 **Aktueller Teil:** Teil 10 – Gemeinschaftslisten und Admin-Tabs  
 **Quelltext zu diesem Teil:** [versions/10-shared-lists-admin-tabs](../versions/10-shared-lists-admin-tabs/)
 
-[← Teil 09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [README / Übersicht](../README.md) | kein nächster Teil →
+[← Teil 09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [README / Übersicht](../README.md) | [Teil 11 – Todos →](teil-11-todos.md)
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
@@ -181,7 +181,7 @@ Diese Nachteile sind in diesem Kapitel nicht automatisch Fehler. Viele davon sin
 
 ## Grenzen dieser Version
 
-- noch keine Todos
+- Todos sind erst im nächsten Teil umgesetzt
 - noch keine Nachrichten oder Chats
 - noch kein Kalender
 - kein fein abgestuftes Rechte- und Einladungssystem
@@ -205,4 +205,4 @@ In einem professionellen Umfeld würde man zusätzlich auf saubere Release-Stän
 
 ## Navigation
 
-[← Teil 09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [README / Übersicht](../README.md) | kein nächster Teil →
+[← Teil 09 – Familien und Haushalte](teil-09-familien-und-haushalte.md) | [README / Übersicht](../README.md) | [Teil 11 – Todos →](teil-11-todos.md)

@@ -2,7 +2,7 @@
 
 **HaushaltsPilot** ist eine fortlaufende Lern- und Tutorialreihe, die aus einer einfachen Einkaufsliste Schritt für Schritt eine vollständige Haushalts- und Familienanwendung entwickelt.
 
-Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte und Gemeinschaftslisten.
+Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und ab Teil 11 persönliche sowie gemeinsame Todos.
 
 Der didaktische Kern lautet:
 
@@ -18,7 +18,7 @@ Die Reihe richtet sich an Lernende, die Webentwicklung praktisch verstehen wolle
 - Jede Dokumentation erklärt nicht nur **was** geändert wurde, sondern auch **warum, weshalb und wieso**.
 - Jede Stufe enthält Pro und Kontra, Sicherheitsaspekte, typische Fehlerquellen und Testideen.
 - Der Quelltext bleibt bewusst nah an den Grundlagen: HTML, CSS, JavaScript, PHP, JSON, SQLite/MySQL.
-- Die Anwendung wächst fachlich sinnvoll: Liste → Speicherung → Datenmodell → Backend → Login → Rechte → Haushalt.
+- Die Anwendung wächst fachlich sinnvoll: Liste → Speicherung → Datenmodell → Backend → Login → Rechte → Haushalt → Todos.
 
 ---
 
@@ -26,7 +26,7 @@ Die Reihe richtet sich an Lernende, die Webentwicklung praktisch verstehen wolle
 
 ## Tutorial-Navigation
 
-Die erste Hälfte der Reihe ist bis Teil 10 ausgearbeitet. Jede Dokumentation ist mit dem passenden Quelltext-Ordner verlinkt.
+Die Reihe ist bis Teil 11 ausgearbeitet. Jede Dokumentation ist mit dem passenden Quelltext-Ordner verlinkt.
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
@@ -40,12 +40,12 @@ Die erste Hälfte der Reihe ist bis Teil 10 ausgearbeitet. Jede Dokumentation is
 | 08 | [Persönliche und gemeinsame Listen](docs/teil-08-persoenliche-und-gemeinsame-listen.md) | [versions/08-personal-shared-lists](versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | [Familien und Haushalte](docs/teil-09-familien-und-haushalte.md) | [versions/09-families-households](versions/09-families-households/) | Haushaltszuordnung für Nutzer |
 | 10 | [Gemeinschaftslisten und Admin-Tabs](docs/teil-10-gemeinschaftslisten-und-admin-tabs.md) | [versions/10-shared-lists-admin-tabs](versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
+| 11 | [Todos](docs/teil-11-todos.md) | [versions/11-todos](versions/11-todos/) | persönliche und gemeinsame Aufgaben |
 
 ## Geplante Fortsetzung
 
 | Teil | Thema | Ergebnis |
 | ---: | --- | --- |
-| 11 | Todos | persönliche und gemeinsame Aufgaben |
 | 12 | Personal Messages | private Nachrichten zwischen Nutzern |
 | 13 | Einzelchat | direkter 1:1-Chat |
 | 14 | Familienchat | gemeinsamer Chat für den Haushalt |
@@ -119,6 +119,20 @@ Das Ziel ist kein Anti-Framework-Statement. Das Ziel ist Grundlagenverständnis.
 
 ---
 
+## Hinweise zur Veröffentlichung
+
+Für eine öffentliche Veröffentlichung auf GitHub empfiehlt sich zusätzlich:
+
+- `config.example.php` statt produktiv wirkender Beispielkonfigurationen
+- keine echten oder dauerhaft wirkenden App-Keys im Repository
+- klare Installationshinweise pro Version
+- optional Demo-Daten für schnelle Tests
+- Changelog oder Release-Notizen
+- Lizenzdatei, falls das Projekt öffentlich weiterverwendet werden darf
+- Hinweis, dass spätere Versionen mit Installer und Datenbank arbeiten
+
+---
+
 ## Status
 
-Die erste Tutorialhälfte bis Teil 10 bildet eine solide Basis für eine Haushaltsanwendung mit Benutzerkonten, Rollen, persönlichen Listen, Haushalten und Gemeinschaftslisten. Die geplanten Teile 11 bis 20 bauen darauf weitere Module wie Todos, Nachrichten, Chat, Kalender, Dashboard, Export und Finalisierung auf.
+Die Tutorialreihe ist bis Teil 11 umgesetzt. Die Anwendung besitzt Benutzerkonten, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten sowie persönliche und gemeinsame Todos. Die geplanten Teile 12 bis 20 bauen darauf Nachrichten, Chat, Kalender, Dashboard, Export und Finalisierung auf.

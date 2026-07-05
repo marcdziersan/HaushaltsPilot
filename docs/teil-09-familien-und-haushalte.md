@@ -25,6 +25,7 @@ Teil 09 führt Haushalte/Familien als eigene fachliche Ebene ein. Gemeinsame Lis
 | 08 | [08 – Persönliche und gemeinsame Listen](teil-08-persoenliche-und-gemeinsame-listen.md) | [Version 08](../versions/08-personal-shared-lists/) | private und gemeinsame Listenrechte |
 | 09 | **[09 – Familien und Haushalte](teil-09-familien-und-haushalte.md)** | **[Version 09](../versions/09-families-households/)** | Haushaltszuordnung für Nutzer |
 | 10 | [10 – Gemeinschaftslisten und Admin-Tabs](teil-10-gemeinschaftslisten-und-admin-tabs.md) | [Version 10](../versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
+| 11 | [11 – Todos](teil-11-todos.md) | [Version 11](../versions/11-todos/) | persönliche und gemeinsame Aufgaben |
 
 <!-- tutorial-nav:end -->
 
