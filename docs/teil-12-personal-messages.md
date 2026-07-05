@@ -260,4 +260,4 @@ Für die Tutorialreihe ist die aktuelle Umsetzung bewusst praktisch: Sie zeigt d
 
 ## Navigation
 
-[← Teil 11 – Todos](teil-11-todos.md) | [README / Übersicht](../README.md) | [Teil 13 – Einzelchat →](#ausblick-auf-den-naechsten-teil)
+[← Teil 11 – Todos](teil-11-todos.md) | [README / Übersicht](../README.md) | [Teil 13 – Einzelchat →](teil-13-einzelchat.md)

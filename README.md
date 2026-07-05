@@ -2,7 +2,7 @@
 
 **HaushaltsPilot** ist eine fortlaufende Lern- und Tutorialreihe, die aus einer einfachen Einkaufsliste Schritt für Schritt eine vollständige Haushalts- und Familienanwendung entwickelt.
 
-Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und ab Teil 11 vertiefte persönliche sowie gemeinsame Todos. Teil 12 ergänzt private Nachrichten zwischen Nutzern und führt erstmals eine AdminLTE-inspirierte Dashboard-Shell ein, damit die wachsenden Module nicht unübersichtlich untereinander stehen.
+Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und ab Teil 11 vertiefte persönliche sowie gemeinsame Todos. Teil 12 ergänzt private Nachrichten zwischen Nutzern und führt eine AdminLTE-inspirierte Dashboard-Shell ein. Teil 13 baut darauf einen direkten 1:1-Chat mit eigener Chatliste, schwebendem Chatfenster unten rechts, Emoji-Auswahl und Ungelesen-Badges.
 
 Der didaktische Kern lautet:
 
@@ -18,7 +18,7 @@ Die Reihe richtet sich an Lernende, die Webentwicklung praktisch verstehen wolle
 - Jede Dokumentation erklärt nicht nur **was** geändert wurde, sondern auch **warum, weshalb und wieso**.
 - Jede Stufe enthält Pro und Kontra, Sicherheitsaspekte, typische Fehlerquellen und Testideen.
 - Der Quelltext bleibt bewusst nah an den Grundlagen: HTML, CSS, JavaScript, PHP, JSON, SQLite/MySQL.
-- Die Anwendung wächst fachlich sinnvoll: Liste → Speicherung → Datenmodell → Backend → Login → Rechte → Haushalt → Todos → private Nachrichten → modulare Dashboard-Oberfläche.
+- Die Anwendung wächst fachlich sinnvoll: Liste → Speicherung → Datenmodell → Backend → Login → Rechte → Haushalt → Todos → private Nachrichten → 1:1-Chat → modulare Dashboard-Oberfläche.
 
 ---
 
@@ -26,7 +26,7 @@ Die Reihe richtet sich an Lernende, die Webentwicklung praktisch verstehen wolle
 
 ## Tutorial-Navigation
 
-Die Reihe ist bis Teil 12 ausgearbeitet. Jede Dokumentation ist mit dem passenden Quelltext-Ordner verlinkt.
+Die Reihe ist bis Teil 13 ausgearbeitet. Jede Dokumentation ist mit dem passenden Quelltext-Ordner verlinkt.
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
@@ -42,12 +42,12 @@ Die Reihe ist bis Teil 12 ausgearbeitet. Jede Dokumentation ist mit dem passende
 | 10 | [Gemeinschaftslisten und Admin-Tabs](docs/teil-10-gemeinschaftslisten-und-admin-tabs.md) | [versions/10-shared-lists-admin-tabs](versions/10-shared-lists-admin-tabs/) | vertiefte Gemeinschaftslisten und Admin-Tabs |
 | 11 | [Todos](docs/teil-11-todos.md) | [versions/11-todos](versions/11-todos/) | vertiefte persönliche und gemeinsame Aufgaben |
 | 12 | [Personal Messages](docs/teil-12-personal-messages.md) | [versions/12-personal-messages](versions/12-personal-messages/) | private Nachrichten, Ungelesen-Badges und AdminLTE-inspirierte Dashboard-Shell |
+| 13 | [Einzelchat](docs/teil-13-einzelchat.md) | [versions/13-one-to-one-chat](versions/13-one-to-one-chat/) | direkter 1:1-Chat mit Chatfenster und Emoji-Funktion |
 
 ## Geplante Fortsetzung
 
 | Teil | Thema | Ergebnis |
 | ---: | --- | --- |
-| 13 | Einzelchat | direkter 1:1-Chat |
 | 14 | Familienchat | gemeinsamer Chat für den Haushalt |
 | 15 | Persönlicher Kalender | eigene Termine |
 | 16 | Familienkalender | gemeinsame Familientermine |
@@ -135,4 +135,9 @@ Für eine öffentliche Veröffentlichung auf GitHub empfiehlt sich zusätzlich:
 
 ## Status
 
-Die Tutorialreihe ist bis Teil 12 umgesetzt. Die Anwendung besitzt Benutzerkonten, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten, persönliche und gemeinsame Todos sowie private Nachrichten zwischen Nutzern mit Ungelesen-Badge. Zusätzlich wurde die Oberfläche in Teil 12 auf eine modulare Dashboard-Shell im AdminLTE-Stil umgestellt: Sidebar, Topbar, Kennzahlen, Modulnavigation und ein eigener Admin-Arbeitsbereich. Teil 17 bleibt trotzdem sinnvoll, weil dort später Kalender, Chat, Termine und Zusammenfassungen fachlich zu einem vollständigen Dashboard verdichtet werden.
+Die Tutorialreihe ist bis Teil 13 umgesetzt. Die Anwendung besitzt Benutzerkonten, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten, persönliche und gemeinsame Todos, private Nachrichten zwischen Nutzern sowie einen direkten 1:1-Chat mit Chat-Menü, Chatliste, schwebendem Chatfenster und Emoji-Funktion. Zusätzlich wurde die Oberfläche ab Teil 12 auf eine modulare Dashboard-Shell im AdminLTE-Stil umgestellt: Sidebar, Topbar, Kennzahlen, Modulnavigation und ein eigener Admin-Arbeitsbereich. Teil 17 bleibt trotzdem sinnvoll, weil dort später Kalender, Chat, Termine und Zusammenfassungen fachlich zu einem vollständigen Dashboard verdichtet werden.
+
+
+### Korrektur: Trennung von Nachrichten und Chats
+
+Teil 13 trennt private Nachrichten und direkte 1:1-Chats nun technisch sauber voneinander. Klassische Personal Messages verwenden eigene Nachrichtenverläufe, während Chatverläufe einen separaten Thread-Typ besitzen. Dadurch erscheinen Chatnachrichten nicht mehr im Nachrichtenmodul und normale private Nachrichten nicht mehr im Chatmodul. Die Badges werden getrennt berechnet.
