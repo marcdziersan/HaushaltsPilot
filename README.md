@@ -2,7 +2,7 @@
 
 **HaushaltsPilot** ist eine fortlaufende Lern- und Tutorialreihe, die aus einer einfachen Einkaufsliste Schritt für Schritt eine vollständige Haushalts- und Familienanwendung entwickelt.
 
-Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und ab Teil 11 vertiefte persönliche sowie gemeinsame Todos. Teil 12 ergänzt private Nachrichten zwischen Nutzern und führt eine AdminLTE-inspirierte Dashboard-Shell ein. Teil 13 baut darauf einen direkten 1:1-Chat mit eigener Chatliste, schwebendem Chatfenster unten rechts, Emoji-Auswahl, Ungelesen-Badges, automatischer Hintergrund-Aktualisierung, Tippanzeige sowie Zustell- und Gelesen-Häkchen. Teil 14 ergänzt den gemeinsamen Familienchat pro Haushalt mit eigener Badge-Funktion und Rechteprüfung über die Haushaltszuordnung. Teil 15 führt einen eigengebauten Kalender im FullCalendar-Stil ein und erlaubt persönliche sowie gemeinsame Familientermine mit vollständigem CRUD.
+Die Reihe beginnt bewusst klein mit HTML, CSS und JavaScript. Danach folgen lokale Speicherung, strukturierte Daten, mehrere Listen, PHP-Backend, JSON-Dateien, konfigurierbare Speicherung, SQLite/MySQL, Login, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten und ab Teil 11 vertiefte persönliche sowie gemeinsame Todos. Teil 12 ergänzt private Nachrichten zwischen Nutzern und führt eine AdminLTE-inspirierte Dashboard-Shell ein. Teil 13 baut darauf einen direkten 1:1-Chat mit eigener Chatliste, schwebendem Chatfenster unten rechts, Emoji-Auswahl, Ungelesen-Badges, automatischer Hintergrund-Aktualisierung, Tippanzeige sowie Zustell- und Gelesen-Häkchen. Teil 14 ergänzt den gemeinsamen Familienchat pro Haushalt mit eigener Badge-Funktion und Rechteprüfung über die Haushaltszuordnung. Teil 15 führt einen eigengebauten Kalender im FullCalendar-Stil ein und erlaubt persönliche sowie gemeinsame Familientermine mit vollständigem CRUD. Teil 16 vertieft den Kalender mit Wiederholungsterminen, einfacher Erinnerungslogik, Todo-Verknüpfung, Filtern und einer Wochenansicht.
 
 Der didaktische Kern lautet:
 
@@ -26,7 +26,7 @@ Die Reihe richtet sich an Lernende, die Webentwicklung praktisch verstehen wolle
 
 ## Tutorial-Navigation
 
-Die Reihe ist bis Teil 15 ausgearbeitet. Jede Dokumentation ist mit dem passenden Quelltext-Ordner verlinkt.
+Die Reihe ist bis Teil 16 ausgearbeitet. Jede Dokumentation ist mit dem passenden Quelltext-Ordner verlinkt.
 
 | Teil | Dokumentation | Quelltext | Ergebnis |
 | ---: | --- | --- | --- |
@@ -45,12 +45,12 @@ Die Reihe ist bis Teil 15 ausgearbeitet. Jede Dokumentation ist mit dem passende
 | 13 | [Einzelchat](docs/teil-13-einzelchat.md) | [versions/13-one-to-one-chat](versions/13-one-to-one-chat/) | direkter 1:1-Chat mit Mini-Chat, Emoji, Hintergrund-Refresh, Tippanzeige und Gelesen-Häkchen |
 | 14 | [Familienchat](docs/teil-14-familienchat.md) | [versions/14-family-chat](versions/14-family-chat/) | gemeinsamer Chat pro Haushalt mit Gruppen-Badge, Tippanzeige und Rechteprüfung |
 | 15 | [Persönlicher Kalender](docs/teil-15-persoenlicher-kalender.md) | [versions/15-personal-calendar](versions/15-personal-calendar/) | eigene Termine und Familientermine in einer FullCalendar-inspirierten Eigenbau-Monatsansicht |
+| 16 | [Kalender vertiefen](docs/teil-16-kalender-vertiefung.md) | [versions/16-calendar-advanced](versions/16-calendar-advanced/) | Wiederholungstermine, Erinnerungen, Todo-Verknüpfung, Filter und Wochenansicht |
 
 ## Geplante Fortsetzung
 
 | Teil | Thema | Ergebnis |
 | ---: | --- | --- |
-| 16 | Kalender vertiefen | Erinnerungen, Wiederholungen oder feinere Familienkalender-Logik |
 | 17 | Dashboard | Dashboard fachlich mit Kalender, Nachrichten, Todos und Terminen final zusammenführen |
 | 18 | Rechte & Sicherheit | Rollen, CSRF, XSS-Schutz, Zugriffskontrolle vertiefen |
 | 19 | Export & Backup | JSON/CSV-Export und Sicherungslogik |
@@ -135,7 +135,7 @@ Für eine öffentliche Veröffentlichung auf GitHub empfiehlt sich zusätzlich:
 
 ## Status
 
-Die Tutorialreihe ist bis Teil 15 umgesetzt. Die Anwendung besitzt Benutzerkonten, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten, persönliche und gemeinsame Todos, private Nachrichten zwischen Nutzern, einen direkten 1:1-Chat, einen gemeinsamen Familienchat pro Haushalt sowie einen Kalender für eigene Termine und Familientermine. Private Nachrichten, Einzelchats und Familienchat sind fachlich und technisch getrennt. Zusätzlich wurde die Oberfläche ab Teil 12 auf eine modulare Dashboard-Shell im AdminLTE-Stil umgestellt: Sidebar, Topbar, Kennzahlen, Modulnavigation und ein eigener Admin-Arbeitsbereich. Teil 17 bleibt trotzdem sinnvoll, weil dort später Kalender, Chat, Termine und Zusammenfassungen fachlich zu einem vollständigen Dashboard verdichtet werden.
+Die Tutorialreihe ist bis Teil 16 umgesetzt. Die Anwendung besitzt Benutzerkonten, Rollen, persönliche Listen, Haushalte, Gemeinschaftslisten, persönliche und gemeinsame Todos, private Nachrichten zwischen Nutzern, einen direkten 1:1-Chat, einen gemeinsamen Familienchat pro Haushalt sowie einen vertieften Kalender für eigene Termine und Familientermine. Private Nachrichten, Einzelchats und Familienchat sind fachlich und technisch getrennt. Zusätzlich wurde die Oberfläche ab Teil 12 auf eine modulare Dashboard-Shell im AdminLTE-Stil umgestellt: Sidebar, Topbar, Kennzahlen, Modulnavigation und ein eigener Admin-Arbeitsbereich. Teil 17 bleibt trotzdem sinnvoll, weil dort später Kalender, Chat, Termine und Zusammenfassungen fachlich zu einem vollständigen Dashboard verdichtet werden.
 
 
 ### Korrektur: Trennung von Nachrichten und Chats
@@ -158,3 +158,8 @@ Teil 14 erweitert das Kommunikationsmodell um einen gemeinsamen Gruppenchat für
 ### Teil 15: Kalender mit persönlichem und gemeinsamem Terminmodell
 
 Teil 15 ergänzt einen eigenen Menüpunkt **Kalender**. Die Oberfläche orientiert sich optisch an FullCalendar, bleibt aber vollständig frameworkfrei. Termine können als private Termine oder Familientermine angelegt, bearbeitet und gelöscht werden. Jeder Termin besitzt Titel, Beginn, Ende, Ort und Beschreibung. Die Rechteprüfung erfolgt serverseitig: private Termine gehören dem Besitzer, Familientermine sind nur für Mitglieder desselben Haushalts sichtbar.
+
+
+### Teil 16: Kalender-Vertiefung
+
+Teil 16 baut auf dem CRUD-Kalender aus Teil 15 auf. Termine können nun Wiederholungen besitzen, einfache Erinnerungen erhalten, mit Todos verknüpft und über Filter gezielt angezeigt werden. Zusätzlich gibt es neben der Monatsansicht eine eigene Wochenansicht. Die Umsetzung bleibt frameworkfrei und nutzt weiterhin serverseitige Rechteprüfung für private Termine und Familientermine.
